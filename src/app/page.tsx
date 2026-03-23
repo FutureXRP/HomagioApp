@@ -1,66 +1,90 @@
-export default function Home() {
+'use client'
+
+export const dynamic = 'force-dynamic'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+
+export default function Login() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const router = useRouter()
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+    } else {
+      router.push('/dashboard')
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/dashboard` }
+    })
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email) { setError('Enter your email address first'); return }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`
+    })
+    if (error) { setError(error.message) } else { alert('Password reset email sent!') }
+  }
+
   return (
-    <main style={{fontFamily: '-apple-system, Helvetica Neue, Arial, sans-serif', background: '#fff', color: '#1a1a1a'}}>
-
-      {/* NAV */}
-      <nav style={{position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: '#fff', borderBottom: '1px solid #e5e5e5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', height: '64px'}}>
-        <div style={{fontSize: '26px', fontWeight: 700, color: '#006aff', letterSpacing: '-1px'}}>
-          hom<span style={{color: '#1a1a1a'}}>agio</span>
+    <div style={{minHeight: '100vh', background: '#f8f8f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'}}>
+      <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e5e5e5', padding: '40px', width: '100%', maxWidth: '420px'}}>
+        <div style={{textAlign: 'center', marginBottom: '32px'}}>
+          <a href="/" style={{textDecoration: 'none'}}>
+            <div style={{fontSize: '28px', fontWeight: 700, color: '#006aff', letterSpacing: '-1px'}}>hom<span style={{color: '#1a1a1a'}}>agio</span></div>
+          </a>
+          <div style={{fontSize: '16px', fontWeight: 600, color: '#1a1a1a', marginTop: '8px'}}>Welcome back</div>
+          <div style={{fontSize: '14px', color: '#888', marginTop: '4px'}}>Sign in to your account</div>
         </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
-          {['Buy', 'Catalog', 'Explore', 'Sell', 'AI Tools', 'Pro Studio'].map(link => (
-            <a key={link} href="#" style={{padding: '8px 14px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: '#444', textDecoration: 'none'}}>{link}</a>
-          ))}
+        <button onClick={handleGoogleLogin} style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #e5e5e5', background: '#fff', fontSize: '15px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px'}}>
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.48A4.8 4.8 0 0 1 4.5 7.5V5.43H1.83a8 8 0 0 0 0 7.14z"/><path fill="#EA4335" d="M8.98 3.58c1.32 0 2.5.45 3.44 1.35l2.54-2.54A8 8 0 0 0 1.83 5.43L4.5 7.5a4.77 4.77 0 0 1 4.48-3.92z"/></svg>
+          Continue with Google
+        </button>
+        <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px'}}>
+          <div style={{flex: 1, height: '1px', background: '#e5e5e5'}} />
+          <span style={{fontSize: '13px', color: '#888'}}>or</span>
+          <div style={{flex: 1, height: '1px', background: '#e5e5e5'}} />
         </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <button style={{padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: '#006aff', border: '1.5px solid #006aff', background: 'transparent', cursor: 'pointer'}}>Sign In</button>
-          <button style={{padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#fff', background: '#006aff', border: 'none', cursor: 'pointer'}}>Join Free</button>
-        </div>
-      </nav>
-
-      {/* HERO */}
-      <div style={{marginTop: '64px', minHeight: '580px', background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden'}}>
-        <div style={{position: 'absolute', inset: 0, backgroundImage: 'url(https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&q=80)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.4}} />
-        <div style={{position: 'relative', zIndex: 2, textAlign: 'center', padding: '60px 24px', width: '100%', maxWidth: '760px'}}>
-          <h1 style={{fontSize: '58px', fontWeight: 700, color: '#fff', lineHeight: 1.1, marginBottom: '10px', letterSpacing: '-1.5px'}}>
-            Your home, fully understood.
-          </h1>
-          <p style={{fontSize: '17px', color: 'rgba(255,255,255,0.85)', marginBottom: '32px'}}>
-            Catalog every detail. Track every dollar. Discover every possibility.
-          </p>
-
-          {/* Search Box */}
-          <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 32px rgba(0,0,0,0.25)', maxWidth: '680px', margin: '0 auto'}}>
-            <div style={{display: 'flex', borderBottom: '1px solid #e8e8e8', padding: '0 8px'}}>
-              {['Catalog My Home', 'Explore Homes', 'Home Value', 'Pro Studio'].map((tab, i) => (
-                <button key={tab} style={{padding: '14px 20px', fontSize: '15px', fontWeight: 500, color: i === 0 ? '#006aff' : '#555', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: i === 0 ? '3px solid #006aff' : '3px solid transparent', marginBottom: '-1px'}}>
-                  {tab}
-                </button>
-              ))}
-            </div>
-            <div style={{display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '10px'}}>
-              <span style={{fontSize: '18px', color: '#bbb'}}>📍</span>
-              <input type="text" placeholder="Enter your address, city, or ZIP code" style={{flex: 1, border: 'none', outline: 'none', fontSize: '16px', color: '#1a1a1a', fontFamily: 'inherit'}} />
-              <button style={{background: '#006aff', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '8px', fontSize: '15px', fontWeight: 600, cursor: 'pointer'}}>Search</button>
-            </div>
+        <form onSubmit={handleLogin}>
+          <div style={{marginBottom: '16px'}}>
+            <label style={{display: 'block', fontSize: '14px', fontWeight: 500, color: '#333', marginBottom: '6px'}}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}} />
           </div>
+          <div style={{marginBottom: '8px'}}>
+            <label style={{display: 'block', fontSize: '14px', fontWeight: 500, color: '#333', marginBottom: '6px'}}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" required style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}} />
+          </div>
+          <div style={{textAlign: 'right', marginBottom: '24px'}}>
+            <button type="button" onClick={handleForgotPassword} style={{background: 'none', border: 'none', color: '#006aff', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit'}}>Forgot password?</button>
+          </div>
+          {error && <div style={{background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: '#dc2626', marginBottom: '16px'}}>{error}</div>}
+          <button type="submit" disabled={loading} style={{width: '100%', padding: '12px', borderRadius: '8px', background: loading ? '#93c5fd' : '#006aff', color: '#fff', border: 'none', fontSize: '15px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit'}}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+        <div style={{textAlign: 'center', marginTop: '24px', fontSize: '14px', color: '#888'}}>
+          Don't have an account?{' '}
+          <a href="/signup" style={{color: '#006aff', fontWeight: 500, textDecoration: 'none'}}>Create one free</a>
         </div>
       </div>
-
-      {/* QUICK LINKS */}
-      <div style={{display: 'flex', justifyContent: 'center', gap: '12px', padding: '32px 24px', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0'}}>
-        {[
-          {icon: '🏠', label: 'Add My Home'},
-          {icon: '📸', label: 'AI Detection'},
-          {icon: '💰', label: 'Home Value'},
-          {icon: '🛒', label: 'Shop Materials'},
-          {icon: '🌍', label: 'Explore Nearby'},
-          {icon: '👷', label: 'Find a Pro'},
-        ].map(item => (
-          <a key={item.label} href="#" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px 20px', border: '1.5px solid #e5e5e5', borderRadius: '12px', cursor: 'pointer', minWidth: '120px', textDecoration: 'none'}}>
-            <span style={{fontSize: '26px'}}>{item.icon}</span>
-            <span style={{fontSize: '13px', fontWeight: 500, color: '#333'}}>{item.label}</span>
-          </a>
+    </div>
+  )
+}          </a>
         ))}
       </div>
 
