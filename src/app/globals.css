@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  background: #ffffff;
+  color: #1a1a1a;
+  overflow-x: hidden;
+}
+
+:root {
+  --blue: #006aff;
+  --dark: #1a1a1a;
+  --gray: #f8f8f8;
+  --border: #e5e5e5;
+  --text-mid: #444444;
+  --text-light: #888888;
+}
+
+input:focus,
+button:focus {
+  outline: none;
+}
+
+::selection {
+  background: #006aff;
+  color: white;
+}
