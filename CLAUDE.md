@@ -162,13 +162,13 @@ a fully interactive, data-rich digital twin of any home.
 - [x] Site is LIVE on the internet ✅
 
 ### 🔨 Phase 1b — Auth & Database (Build Next)
-- [ ] Supabase project created and configured
-- [ ] Environment variables set up (.env.local)
-- [ ] Supabase client created (src/lib/supabase.ts)
-- [ ] Database schema designed and migrated
-- [ ] User sign up page (src/app/(auth)/signup/page.tsx)
-- [ ] User sign in page (src/app/(auth)/login/page.tsx)
-- [ ] Google OAuth configured
+- [x] Supabase project created and configured
+- [x] Environment variables set up (.env.local)
+- [x] Supabase client created (src/lib/supabase.ts)
+- [x] Database schema designed and migrated
+- [x] User sign up page (src/app/(auth)/signup/page.tsx)
+- [x] User sign in page (src/app/(auth)/login/page.tsx)
+- [x] Google OAuth configured
 - [ ] Protected dashboard route
 - [ ] Onboarding wizard (3-step: address → photos → first material)
 - [ ] Add Home flow
