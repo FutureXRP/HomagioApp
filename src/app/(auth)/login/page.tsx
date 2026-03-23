@@ -84,6 +84,30 @@ export default function Login() {
       </div>
     </div>
   )
+}        <form onSubmit={handleLogin}>
+          <div style={{marginBottom: '16px'}}>
+            <label style={{display: 'block', fontSize: '14px', fontWeight: 500, color: '#333', marginBottom: '6px'}}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}} />
+          </div>
+          <div style={{marginBottom: '8px'}}>
+            <label style={{display: 'block', fontSize: '14px', fontWeight: 500, color: '#333', marginBottom: '6px'}}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" required style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}} />
+          </div>
+          <div style={{textAlign: 'right', marginBottom: '24px'}}>
+            <button type="button" onClick={handleForgotPassword} style={{background: 'none', border: 'none', color: '#006aff', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit'}}>Forgot password?</button>
+          </div>
+          {error && <div style={{background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: '#dc2626', marginBottom: '16px'}}>{error}</div>}
+          <button type="submit" disabled={loading} style={{width: '100%', padding: '12px', borderRadius: '8px', background: loading ? '#93c5fd' : '#006aff', color: '#fff', border: 'none', fontSize: '15px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit'}}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+        <div style={{textAlign: 'center', marginTop: '24px', fontSize: '14px', color: '#888'}}>
+          Don't have an account?{' '}
+          <a href="/signup" style={{color: '#006aff', fontWeight: 500, textDecoration: 'none'}}>Create one free</a>
+        </div>
+      </div>
+    </div>
+  )
 }
 ```
 
