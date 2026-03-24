@@ -41,7 +41,7 @@ export default function Login() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://homagio-app.vercel.app/dashboard'
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
       }
     })
   }
@@ -95,7 +95,7 @@ export default function Login() {
               onChange={e => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}}
+              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}}
             />
           </div>
 
@@ -107,7 +107,7 @@ export default function Login() {
               onChange={e => setPassword(e.target.value)}
               placeholder="Your password"
               required
-              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}}
+              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}}
             />
           </div>
 
