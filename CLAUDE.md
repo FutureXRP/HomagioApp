@@ -30,8 +30,7 @@ Two user types:
 - Typography: System sans-serif, clean hierarchy
 - Brand name: homagio (lowercase logo, blue accent on "agio")
 - Flagship product term: "Homagio Estimate™" (like Zillow's Zestimate)
-- NOTE: Interior pages (dashboard, rooms, materials) are currently functional but unstyled.
-  A full design polish pass is planned after all core flows are built.
+- NOTE: Interior pages are functional but unstyled. Design polish pass planned after all core flows are built.
 
 ---
 
@@ -42,26 +41,27 @@ Two user types:
 | Frontend       | Next.js 14 (App Router), Tailwind CSS   |
 | Database       | PostgreSQL via Supabase                 |
 | Auth           | Supabase Auth (email + Google OAuth)    |
+| Email          | Resend (welcome email working)          |
 | Image Storage  | Cloudinary (not yet set up)             |
 | AI Detection   | OpenAI Vision API (not yet set up)      |
 | Maps           | Mapbox GL (not yet set up)              |
 | Payments       | Stripe + Stripe Connect (not yet set up)|
-| Email          | Resend (not yet set up)                 |
 | Affiliate Mgmt | Skimlinks or custom (not yet set up)    |
 | Deploy (web)   | Vercel Pro                              |
 | Mobile (later) | React Native                            |
 
 ---
 
-## 🔑 Supabase Keys (in Vercel env vars — do not commit)
+## 🔑 Keys (all in Vercel env vars — never commit)
 
-- NEXT_PUBLIC_SUPABASE_URL = (in Vercel env vars)
-- NEXT_PUBLIC_SUPABASE_ANON_KEY = (in Vercel env vars)
-- SUPABASE_SECRET_KEY = (in Vercel env vars only — do not commit)
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SECRET_KEY
+- RESEND_API_KEY
 
 ---
 
-## 🗄️ Database Tables (all created in Supabase)
+## 🗄️ Database Tables (all in Supabase)
 
 - profiles (id, email, full_name, avatar_url, role, subscription_tier, created_at)
 - homes (id, user_id, name, address, city, state, zip, lat, lng, year_built, square_feet, bedrooms, bathrooms, value_estimate, is_public, created_at)
@@ -89,7 +89,8 @@ HomagioApp/
 │   │   │   ├── login/page.tsx                            ✅ working
 │   │   │   └── signup/page.tsx                           ✅ working
 │   │   ├── dashboard/
-│   │   │   └── page.tsx                                  ✅ working
+│   │   │   ├── page.tsx                                  ✅ welcome screen with feature cards
+│   │   │   └── homes/page.tsx                            ✅ my homes list
 │   │   ├── homes/
 │   │   │   ├── add/page.tsx                              ✅ working
 │   │   │   └── [id]/
@@ -100,19 +101,24 @@ HomagioApp/
 │   │   │               ├── page.tsx                      ✅ working
 │   │   │               └── materials/
 │   │   │                   └── add/page.tsx              ✅ working
+│   │   ├── loading/
+│   │   │   └── page.tsx                                  ✅ session loading spinner
+│   │   ├── api/
+│   │   │   └── send-welcome/route.ts                     ✅ welcome email via Resend
 │   │   └── auth/
-│   │       └── callback/route.ts                         ✅ working
-│   ├── middleware.ts                                      ✅ working
+│   │       └── callback/route.ts                         ✅ OAuth code exchange
+│   ├── middleware.ts                                      ✅ calls proxy to refresh session
 │   └── lib/
-│       ├── supabase.ts                                   ✅ @supabase/ssr browser client
-│       └── supabaseServer.ts                             ✅ @supabase/ssr server client
+│       └── supabase/
+│           ├── client.ts                                 ✅ browser client
+│           ├── server.ts                                 ✅ server client
+│           └── proxy.ts                                  ✅ session refresh middleware
 ├── vercel.json                                           ✅ framework: nextjs
-├── .cfignore                                             ✅ leftover, harmless
 ├── next.config.js                                        ✅
 ├── tailwind.config.ts                                    ✅
 ├── tsconfig.json                                         ✅
 ├── postcss.config.js                                     ✅
-├── package.json                                          ✅ includes @supabase/ssr
+├── package.json                                          ✅ includes @supabase/ssr, resend
 └── CLAUDE.md                                             ✅ this file
 ```
 
@@ -121,38 +127,37 @@ HomagioApp/
 ## 🏗️ Build Phases
 
 ### ✅ Phase 0 — Complete
-- [x] Product vision defined
-- [x] Full feature spec documented
-- [x] Design language established
-- [x] Tech stack decided
+- [x] Product vision, feature spec, design language, tech stack
 
 ### ✅ Phase 1a — Foundation Complete
-- [x] GitHub repo created
-- [x] Next.js 14 project scaffolded
-- [x] Vercel Pro connected and auto-deploying
-- [x] Site is LIVE at homagio-app.vercel.app
+- [x] GitHub repo, Next.js 14, Vercel Pro, live site
 
-### ✅ Phase 1b — Auth & Database Complete
-- [x] Supabase project created
-- [x] Environment variables in Vercel
-- [x] Supabase client using @supabase/ssr
-- [x] Middleware refreshing session on every request
-- [x] Sign up, login, Google OAuth all working
+### ✅ Phase 1b — Auth Complete
+- [x] Supabase + @supabase/ssr (browser + server + proxy architecture)
+- [x] Email/password login working
+- [x] Google OAuth working
 - [x] Auth callback route working
-- [x] Dashboard loading homes from Supabase
+- [x] Middleware protecting /dashboard routes
+- [x] Welcome email via Resend on signup
 
 ### ✅ Phase 1c — Core Flows Complete
-- [x] Add Home flow working
-- [x] Individual home page working
-- [x] Add Room flow working
-- [x] Room detail page working
-- [x] Add Material flow working (name, brand, category, color, finish, cost, purchase URL, affiliate URL)
-- [x] Material detail shows in room page
+- [x] Add Home flow
+- [x] Individual home page
+- [x] Add Room flow
+- [x] Room detail page
+- [x] Add Material flow (name, brand, category, color, finish, cost, purchase URL, affiliate URL)
+- [x] New dashboard welcome screen ("Welcome back, Matt!")
+- [x] My Homes moved to /dashboard/homes
 
-### 📋 Phase 1d — Next Session
-- [ ] Design polish pass on all interior pages (dashboard, home, room, material)
+### ⚠️ Known Issues (low priority, don't fix yet)
+- Google OAuth signup creates account then requires a second login before reaching dashboard
+  - Root cause: session cookie not fully propagated before /dashboard checks it
+  - Fix approach: update auth/callback to redirect to /dashboard (not /loading) and rely on onAuthStateChange
+  - HOLD OFF — app is working, risk of regression too high right now
+
+### 📋 Phase 1d — Next
+- [ ] Design polish pass on all interior pages
 - [ ] Stripe subscriptions (Free/Premium/Pro)
-- [ ] Email setup with Resend
 
 ### 📋 Phase 2 — Core Product
 - [ ] Photo upload (Cloudinary)
@@ -183,58 +188,49 @@ HomagioApp/
 
 ## 💰 Affiliate Revenue Model (build in Phase 3)
 
-**Concept:** Homagio operates a single master affiliate account across all home improvement retailers
-(Home Depot, Amazon, Wayfair, Lowe's, etc.). Every "Shop This Material" link on the platform
-routes through Homagio's affiliate links — not the individual user's.
+Homagio operates a single master affiliate account across all retailers.
+Every "Shop This Material" link routes through Homagio's affiliate links.
 
-**How it works:**
-- User adds a material with a normal product URL (e.g. homedepot.com/stove)
-- Backend automatically converts it to a Homagio affiliate link
-- Public visitors click "Shop This" → Homagio earns the commission
-- Homeowner gets a revenue share paid out via Stripe Connect
-
-**Commission split options (decide before building):**
-- Option A: 80% homeowner / 20% Homagio — generous, drives adoption
-- Option B: 60% homeowner / 40% Homagio — more platform revenue
+**Commission split options:**
+- Option A: 80% homeowner / 20% Homagio
+- Option B: 60% homeowner / 40% Homagio
 - Option C: Tiered by subscription — Free: 70/30, Premium: 80/20, Pro: 85/15
 
-**Why this is better than users managing their own affiliate links:**
-- Zero friction for users — paste any normal product URL, we handle the rest
-- Users don't need their own affiliate accounts
-- Homagio controls the full revenue stream
-- Single affiliate relationship with each retailer is easier to manage
-
 **Tech needed:**
-- Skimlinks or VigLink for automatic link conversion (easiest), OR custom link management
+- Skimlinks or VigLink for automatic link conversion
 - Stripe Connect for homeowner payouts
-- Dashboard showing homeowner earnings per material/month
-- Clear ToS disclosing affiliate relationship to visitors
+- Earnings dashboard for homeowners
+- Clear ToS disclosing affiliate relationship
 
 ---
 
 ## ⚠️ Important Notes for Claude
 
-- Owner is on Mac
-- No local terminal — using GitHub web UI (github.com) to create/edit files
-- Use "Add file → Create new file" on GitHub, NOT the pencil edit icon (causes corruption)
+- Owner is on Mac, no local terminal
+- Use GitHub web UI to create/edit files — always use Add File → Create New File (pencil edit icon corrupts files)
 - All files committed directly to main branch
 - Vercel Pro auto-deploys every commit to main
-- Use window.location.href instead of useRouter for redirects
-- Never use useRouter for redirects — causes session issues
+- Always use window.location.href for redirects — never useRouter
 - All monetary values stored in cents in database
 - User roles: 'homeowner' | 'pro' | 'admin'
 - Subscription tiers: 'free' | 'premium' | 'pro_studio'
-- Always provide files as downloads — pasting long files in chat causes corruption
-- @supabase/ssr is required for cookie-based sessions
-- vercel.json with {"framework": "nextjs"} is required
 
 ## 🔧 Auth Architecture
-- supabase.ts: createBrowserClient from @supabase/ssr (client components)
-- supabaseServer.ts: createServerClient from @supabase/ssr with cookies (server components)
-- middleware.ts: runs on every /dashboard request, refreshes session cookie
-- auth/callback/route.ts: exchanges OAuth code for session
+- `src/lib/supabase/client.ts` — createBrowserClient for client components
+- `src/lib/supabase/server.ts` — createServerClient with cookies for server components
+- `src/lib/supabase/proxy.ts` — session refresh logic called by middleware
+- `src/middleware.ts` — calls updateSession from proxy on every request
+- `src/app/auth/callback/route.ts` — exchanges OAuth code for session, redirects to /dashboard
 - Google OAuth redirect URI in Google Cloud Console: https://emwwijbfyqjtmwkmwgnt.supabase.co/auth/v1/callback
 - Supabase redirect URLs: https://homagio-app.vercel.app/** and https://homagio-app.vercel.app/auth/callback
+- Supabase Site URL: https://homagio-app.vercel.app
+- Email confirmation: OFF in Supabase
+
+## 📧 Email Architecture
+- Provider: Resend (free tier)
+- From address: onboarding@resend.dev (until custom domain set up)
+- Welcome email fires on signup via /api/send-welcome route
+- Future: swap to hello@homagio.com once domain purchased
 
 ---
 
@@ -246,5 +242,5 @@ routes through Homagio's affiliate links — not the individual user's.
 
 ---
 
-*Last updated: Session 3 — Auth fixed, all core flows built (Home/Room/Material), affiliate revenue model designed*
-*Next session: Design polish pass OR Stripe subscriptions OR Resend email*
+*Last updated: Session 4 — Auth fully rebuilt with @supabase/ssr proxy architecture, Resend welcome email working, dashboard welcome screen built, all core flows updated*
+*Next session: Design polish pass OR Stripe subscriptions*
