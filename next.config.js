@@ -6,6 +6,12 @@ const nextConfig = {
       'res.cloudinary.com',
     ],
   },
+  experimental: {
+    outputFileTracingExcludes: {
+      '*': [
+        '.next/cache/**',
+      ],
+    },
+  },
 }
-
 module.exports = nextConfig
