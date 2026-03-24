@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 const ROOM_TYPES = [
   'Living Room', 'Kitchen', 'Master Bedroom', 'Bedroom', 'Master Bathroom',
