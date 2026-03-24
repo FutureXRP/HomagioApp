@@ -19,9 +19,13 @@ export async function GET(request: NextRequest) {
             return cookieStore.getAll()
           },
           setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch (error) {
+              // Cookie setting failed — this is okay, session will be handled client-side
+            }
           },
         },
       }
@@ -30,9 +34,19 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      return NextResponse.redirect(new URL(next, request.url))
+      const redirectUrl = new URL(next, requestUrl.origin)
+      const response = NextResponse.redirect(redirectUrl)
+      
+      // Copy all cookies from cookieStore to response
+      const allCookies = cookieStore.getAll()
+      allCookies.forEach(cookie => {
+        response.cookies.set(cookie.name, cookie.value)
+      })
+      
+      return response
     }
   }
 
-  return NextResponse.redirect(new URL('/login', request.url))
+  // If something went wrong, redirect to login with error
+  return NextResponse.redirect(new URL('/login?error=auth_failed', requestUrl.origin))
 }
