@@ -40,7 +40,6 @@ export default function SignUp() {
         body: JSON.stringify({ email, name }),
       })
     } catch (err) {
-      // Don't block signup if email fails
       console.error('Welcome email failed:', err)
     }
 
@@ -52,7 +51,7 @@ export default function SignUp() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
       }
     })
   }
@@ -60,8 +59,7 @@ export default function SignUp() {
   return (
     <div style={{minHeight: '100vh', background: '#f8f8f8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'}}>
       <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e5e5e5', padding: '40px', width: '100%', maxWidth: '420px'}}>
-        
-        {/* Logo */}
+
         <div style={{textAlign: 'center', marginBottom: '32px'}}>
           <div style={{fontSize: '28px', fontWeight: 700, color: '#006aff', letterSpacing: '-1px'}}>
             hom<span style={{color: '#1a1a1a'}}>agio</span>
@@ -70,7 +68,6 @@ export default function SignUp() {
           <div style={{fontSize: '14px', color: '#888', marginTop: '4px'}}>Start cataloging your home today</div>
         </div>
 
-        {/* Google Button */}
         <button
           onClick={handleGoogleSignUp}
           style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #e5e5e5', background: '#fff', fontSize: '15px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px'}}
@@ -84,14 +81,12 @@ export default function SignUp() {
           Continue with Google
         </button>
 
-        {/* Divider */}
         <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px'}}>
           <div style={{flex: 1, height: '1px', background: '#e5e5e5'}} />
           <span style={{fontSize: '13px', color: '#888'}}>or</span>
           <div style={{flex: 1, height: '1px', background: '#e5e5e5'}} />
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSignUp}>
           <div style={{marginBottom: '16px'}}>
             <label style={{display: 'block', fontSize: '14px', fontWeight: 500, color: '#333', marginBottom: '6px'}}>Full Name</label>
