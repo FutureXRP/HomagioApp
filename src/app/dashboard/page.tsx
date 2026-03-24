@@ -39,7 +39,7 @@ const FEATURES = [
   },
   {
     icon: '💰',
-    title: 'Check My Home\'s Value',
+    title: "Check My Home's Value",
     desc: 'See your Homagio Estimate™ and track value over time.',
     href: '#',
     color: '#059669',
@@ -60,16 +60,33 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        window.location.href = '/login'
+    // First check for existing session
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setUser(session.user)
+        setLoading(false)
         return
       }
-      setUser(user)
-      setLoading(false)
+      // No session — redirect to login
+      window.location.href = '/login'
     }
-    fetchUser()
+
+    init()
+
+    // Also listen for auth changes (catches OAuth redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          setUser(session.user)
+          setLoading(false)
+        } else if (event === 'SIGNED_OUT') {
+          window.location.href = '/login'
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleSignOut = async () => {
@@ -91,8 +108,6 @@ export default function Dashboard() {
 
   return (
     <div style={{minHeight: '100vh', background: '#f8f8f8'}}>
-
-      {/* Nav */}
       <nav style={{background: '#fff', borderBottom: '1px solid #e5e5e5', padding: '0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
         <div style={{fontSize: '24px', fontWeight: 700, color: '#006aff', letterSpacing: '-1px'}}>
           hom<span style={{color: '#1a1a1a'}}>agio</span>
@@ -109,8 +124,6 @@ export default function Dashboard() {
       </nav>
 
       <div style={{maxWidth: '1100px', margin: '0 auto', padding: '56px 32px'}}>
-
-        {/* Greeting */}
         <div style={{marginBottom: '48px', textAlign: 'center'}}>
           <h1 style={{fontSize: '36px', fontWeight: 700, color: '#1a1a1a', letterSpacing: '-1px', marginBottom: '8px'}}>
             Welcome back, {firstName}! 👋
@@ -120,7 +133,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Feature Grid */}
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '48px'}}>
           {FEATURES.map(feature => (
             <div
@@ -134,7 +146,6 @@ export default function Dashboard() {
                 cursor: feature.soon ? 'default' : 'pointer',
                 position: 'relative',
                 opacity: feature.soon ? 0.75 : 1,
-                transition: 'border-color 0.15s',
               }}
             >
               {feature.soon && (
@@ -154,7 +165,6 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Quick Stats Bar */}
         <div style={{background: '#fff', border: '1px solid #e5e5e5', borderRadius: '16px', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '16px'}}>
           {[
             {icon: '🏠', label: 'My Homes', href: '/dashboard/homes'},
@@ -172,7 +182,6 @@ export default function Dashboard() {
             </a>
           ))}
         </div>
-
       </div>
     </div>
   )
