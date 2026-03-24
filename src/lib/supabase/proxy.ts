@@ -12,7 +12,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -25,10 +25,8 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Refresh session using getClaims — do not remove
   const { data: { claims } } = await supabase.auth.getClaims()
 
-  // Protect /dashboard routes
   if (!claims && request.nextUrl.pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
