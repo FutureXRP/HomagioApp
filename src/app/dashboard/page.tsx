@@ -10,27 +10,43 @@ export default function Dashboard() {
   const [homes, setHomes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [notAuthed, setNotAuthed] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-      if (!user) {
-        setNotAuthed(true)
+        if (userError) {
+          setError('Auth error: ' + userError.message)
+          setLoading(false)
+          return
+        }
+
+        if (!user) {
+          setNotAuthed(true)
+          setLoading(false)
+          return
+        }
+
+        setUser(user)
+
+        const { data: homesData, error: homesError } = await supabase
+          .from('homes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        if (homesError) {
+          setError('Homes error: ' + homesError.message)
+        }
+
+        setHomes(homesData || [])
         setLoading(false)
-        return
+      } catch (err: any) {
+        setError('Unexpected error: ' + err.message)
+        setLoading(false)
       }
-
-      setUser(user)
-
-      const { data: homesData } = await supabase
-        .from('homes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      setHomes(homesData || [])
-      setLoading(false)
     }
 
     fetchData()
@@ -67,6 +83,19 @@ export default function Dashboard() {
     return (
       <div style={{minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f8f8'}}>
         <div style={{fontSize: '16px', color: '#888'}}>Loading your homes...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div style={{minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f8f8'}}>
+        <div style={{textAlign: 'center', padding: '32px'}}>
+          <div style={{fontSize: '48px', marginBottom: '16px'}}>⚠️</div>
+          <div style={{fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: '#e00'}}>Something went wrong</div>
+          <div style={{fontSize: '14px', color: '#666', marginBottom: '24px', fontFamily: 'monospace', background: '#f0f0f0', padding: '12px', borderRadius: '8px'}}>{error}</div>
+          <a href="/login" style={{color: '#006aff', textDecoration: 'none', fontSize: '15px'}}>Back to Login →</a>
+        </div>
       </div>
     )
   }
