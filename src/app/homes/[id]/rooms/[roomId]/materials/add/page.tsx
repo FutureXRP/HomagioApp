@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 const MATERIAL_CATEGORIES = [
   'Flooring', 'Wall Paint', 'Tile', 'Countertops', 'Cabinets', 'Appliances',
