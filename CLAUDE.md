@@ -7,7 +7,8 @@
 
 ## 🌐 Live URLs
 - **GitHub:** https://github.com/FutureXRP/HomagioApp
-- **Vercel (Live Site):** [paste your Vercel URL here]
+- **Vercel (Live Site):** https://homagio-app.vercel.app
+- **Supabase Project URL:** https://emwwijbfyqjtmwkmwgnt.supabase.co
 
 ---
 
@@ -16,10 +17,7 @@
 Homagio is a **Home Intelligence Platform** — the "Home Operating System."
 Positioning: Zillow + Pinterest + Houzz + Excel + AI, combined into one platform.
 
-It is NOT just a listing app or a design app. It gives homeowners and professionals
-a fully interactive, data-rich digital twin of any home.
-
-**Two user types:**
+Two user types:
 1. Homeowners — track, improve, plan, and shop their home
 2. Pro Users (Designers, Builders, Realtors) — manage clients, showcase portfolios
 
@@ -30,38 +28,181 @@ a fully interactive, data-rich digital twin of any home.
 - Style: Zillow-inspired (clean, white, minimal, trustworthy)
 - Primary color: #006aff (Zillow blue)
 - Typography: System sans-serif, clean hierarchy
-- UI patterns: Zillow-style tabs, property cards with data pills,
-  white backgrounds, light gray borders (#e5e5e5)
 - Brand name: homagio (lowercase logo, blue accent on "agio")
 - Flagship product term: "Homagio Estimate™" (like Zillow's Zestimate)
 
 ---
 
-## 💡 Core Features (Full Spec)
+## ⚙️ Tech Stack
 
-### Homeowner Features
-- Multi-home management (Free: 2 homes, Premium: unlimited)
-- Address search (Zillow-style) + manual entry
-- Ownership claim system + dispute submission + admin review
-- Digital Twin / Home Catalog:
-  - Interior rooms + exterior areas
-  - Materials (flooring, countertops, paint, fixtures)
-  - Colors, brands, finishes, notes per item
-  - Organized by room and category
-  - Image-based tracking per space
-- Photo upload + AI material/style/furniture detection
-  - Confidence scores + manual override
-  - Image gallery per room/home
-- Smart shopping list generator (PDF/CSV export)
-- Affiliate link system (admin-controlled)
-- "Buy This Look" functionality
-- Budget tracker (per room, per project, full home)
-- Estimated vs actual spend tracking
-- Renovation ROI calculator
-- Homagio Estimate™ (home value estimate)
-- Material usage + spend analytics
-- Project completion tracking
+| Layer          | Technology                              |
+|----------------|-----------------------------------------|
+| Frontend       | Next.js 14 (App Router), Tailwind CSS   |
+| Database       | PostgreSQL via Supabase                 |
+| Auth           | Supabase Auth (email + Google OAuth)    |
+| Image Storage  | Cloudinary (not yet set up)             |
+| AI Detection   | OpenAI Vision API (not yet set up)      |
+| Maps           | Mapbox GL (not yet set up)              |
+| Payments       | Stripe (not yet set up)                 |
+| Email          | Resend (not yet set up)                 |
+| Deploy (web)   | Vercel Pro                              |
+| Mobile (later) | React Native                            |
 
+---
+
+## 🔑 Supabase Keys (in Vercel env vars)
+
+- NEXT_PUBLIC_SUPABASE_URL = https://emwwijbfyqjtmwkmwgnt.supabase.co
+- NEXT_PUBLIC_SUPABASE_ANON_KEY = sb_publishable_j-Uu80wYijMHaDBeNgQzDg_N-tfhCMp
+- SUPABASE_SECRET_KEY = (stored in Vercel env vars only — do not commit)
+
+---
+
+## 🗄️ Database Tables (all created in Supabase)
+
+- profiles (id, email, full_name, avatar_url, role, subscription_tier, created_at)
+- homes (id, user_id, name, address, city, state, zip, lat, lng, year_built, square_feet, bedrooms, bathrooms, value_estimate, is_public, created_at)
+- rooms (id, home_id, name, type, floor, notes, created_at)
+- materials (id, room_id, home_id, name, brand, color, finish, notes, cost, purchase_url, affiliate_url, ai_detected, ai_confidence, created_at)
+- photos (id, home_id, room_id, url, ai_tags, ai_confidence, created_at)
+- budgets (id, home_id, room_id, project_name, estimated, actual, status, created_at)
+- saved_homes (id, user_id, home_id, created_at)
+- home_timeline (id, home_id, event_type, description, cost, event_date, created_at)
+- Row Level Security enabled on all tables
+- Auto profile creation trigger on new user signup
+
+---
+
+## 📁 Current File Structure
+
+```
+HomagioApp/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx                    ✅ landing page
+│   │   ├── globals.css                 ✅
+│   │   ├── layout.tsx                  ✅
+│   │   ├── (auth)/
+│   │   │   ├── login/page.tsx          ✅ working
+│   │   │   └── signup/page.tsx         ✅ working
+│   │   ├── dashboard/
+│   │   │   └── page.tsx                ✅ working
+│   │   ├── homes/
+│   │   │   ├── add/page.tsx            ✅ working
+│   │   │   └── [id]/page.tsx           ✅ working
+│   │   └── auth/
+│   │       └── callback/route.ts       ✅ working
+│   ├── middleware.ts                   ✅ working (session refresh)
+│   └── lib/
+│       ├── supabase.ts                 ✅ using @supabase/ssr browser client
+│       └── supabaseServer.ts           ✅ using @supabase/ssr server client
+├── vercel.json                         ✅ framework: nextjs
+├── .cfignore                           ✅ (leftover from Cloudflare attempt, harmless)
+├── next.config.js                      ✅
+├── tailwind.config.ts                  ✅
+├── tsconfig.json                       ✅
+├── postcss.config.js                   ✅
+├── package.json                        ✅ includes @supabase/ssr
+└── CLAUDE.md                           ✅ this file
+```
+
+---
+
+## 🏗️ Build Phases
+
+### ✅ Phase 0 — Complete
+- [x] Product vision defined
+- [x] Full feature spec documented
+- [x] Design language established
+- [x] Tech stack decided
+
+### ✅ Phase 1a — Foundation Complete
+- [x] GitHub repo created
+- [x] Next.js 14 project scaffolded
+- [x] Vercel connected and auto-deploying
+- [x] Site is LIVE at homagio-app.vercel.app
+
+### ✅ Phase 1b — Auth & Database Complete
+- [x] Supabase project created
+- [x] Environment variables in Vercel
+- [x] Supabase client using @supabase/ssr (browser + server)
+- [x] Middleware refreshing session on every request
+- [x] Sign up page working
+- [x] Login page working
+- [x] Google OAuth working (redirect URIs configured in both Google Cloud Console and Supabase)
+- [x] Auth callback route working (exchanges code for session via @supabase/ssr)
+- [x] Dashboard page working (loads homes from Supabase)
+- [x] Add Home flow working (tested and confirmed)
+- [x] Individual home page built
+
+### 📋 Phase 1c — Next Session
+- [ ] Add Room flow
+- [ ] Add Material flow
+- [ ] Stripe subscriptions (Free/Premium/Pro)
+- [ ] Email setup with Resend
+
+### 📋 Phase 2 — Core Product
+- [ ] Photo upload (Cloudinary)
+- [ ] AI material detection (OpenAI Vision)
+- [ ] Budget tracker + ROI calculator
+- [ ] Shopping list generator + PDF export
+- [ ] Homagio Estimate™
+
+### 📋 Phase 3 — Explore + Discovery
+- [ ] Mapbox map integration
+- [ ] Public home profiles
+- [ ] Browse + filter nearby homes
+
+### 📋 Phase 4 — Pro Studio
+- [ ] Pro user dashboard
+- [ ] Client management
+- [ ] PDF spec sheet exports
+
+### 📋 Phase 5 — Retention + Growth
+- [ ] Email notifications (Resend)
+- [ ] Home timeline
+- [ ] Maintenance reminders
+- [ ] React Native mobile app
+
+---
+
+## ⚠️ Important Notes for Claude
+
+- Owner is on Mac
+- No local terminal — using GitHub web UI (github.com) to create/edit files
+- Use "Add file → Create new file" on GitHub, NOT the pencil edit icon (causes corruption)
+- All files committed directly to main branch
+- Vercel Pro auto-deploys every commit to main
+- Use window.location.href instead of useRouter for redirects
+- Never use useRouter for redirects — it causes session issues
+- All monetary values stored in cents in database
+- User roles: 'homeowner' | 'pro' | 'admin'
+- Subscription tiers: 'free' | 'premium' | 'pro_studio'
+- Always provide files as downloads for long files — pasting in chat causes corruption
+- GitHub web editor corrupts files — always use Add File → Create New File
+- @supabase/ssr is required (not just @supabase/supabase-js) for cookie-based sessions
+- vercel.json with {"framework": "nextjs"} is required for correct output directory
+
+## 🔧 Auth Architecture (how it works)
+- supabase.ts: createBrowserClient from @supabase/ssr (used in client components)
+- supabaseServer.ts: createServerClient from @supabase/ssr with cookie handling (used in server components)
+- middleware.ts: runs on every /dashboard request, refreshes session cookie
+- auth/callback/route.ts: exchanges OAuth code for session using createServerClient
+- Google OAuth redirect URI in Google Cloud Console: https://emwwijbfyqjtmwkmwgnt.supabase.co/auth/v1/callback
+- Supabase redirect URLs: https://homagio-app.vercel.app/** and https://homagio-app.vercel.app/auth/callback
+
+---
+
+## 🚀 How to Start Each New Session
+
+1. Open new chat at claude.ai
+2. Paste this entire CLAUDE.md
+3. Say what you want to build
+
+---
+
+*Last updated: Session 3 — Auth fully fixed, Google OAuth working, Add Home flow confirmed working, upgraded to Vercel Pro*
+*Next session: Build Add Room + Add Material flows (Phase 1c)*
 ### Explore + Discovery
 - Map-based home browsing (Zillow-style)
 - Nearby homes view
