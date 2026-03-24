@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 const ROOM_ICONS: Record<string, string> = {
   'Living Room': '🛋️', 'Kitchen': '🍳', 'Master Bedroom': '🛏️',
