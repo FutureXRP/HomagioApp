@@ -28,9 +28,23 @@ export default function SignUp() {
 
     if (error) {
       setError(error.message)
-    } else {
-      setMessage('Check your email to confirm your account!')
+      setLoading(false)
+      return
     }
+
+    // Send welcome email
+    try {
+      await fetch('/api/send-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name }),
+      })
+    } catch (err) {
+      // Don't block signup if email fails
+      console.error('Welcome email failed:', err)
+    }
+
+    setMessage('Check your email to confirm your account!')
     setLoading(false)
   }
 
@@ -38,7 +52,7 @@ export default function SignUp() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`
+        redirectTo: `${window.location.origin}/auth/callback`
       }
     })
   }
@@ -87,7 +101,7 @@ export default function SignUp() {
               onChange={e => setName(e.target.value)}
               placeholder="John Smith"
               required
-              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}}
+              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}}
             />
           </div>
 
@@ -99,7 +113,7 @@ export default function SignUp() {
               onChange={e => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}}
+              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}}
             />
           </div>
 
@@ -112,7 +126,7 @@ export default function SignUp() {
               placeholder="Min 8 characters"
               required
               minLength={8}
-              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit'}}
+              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}}
             />
           </div>
 
@@ -137,7 +151,6 @@ export default function SignUp() {
           </button>
         </form>
 
-        {/* Sign in link */}
         <div style={{textAlign: 'center', marginTop: '24px', fontSize: '14px', color: '#888'}}>
           Already have an account?{' '}
           <a href="/login" style={{color: '#006aff', fontWeight: 500, textDecoration: 'none'}}>Sign in</a>
