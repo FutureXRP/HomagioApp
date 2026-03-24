@@ -41,7 +41,7 @@ export default function Login() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
+        redirectTo: 'https://homagio-app.vercel.app/auth/callback'
       }
     })
   }
