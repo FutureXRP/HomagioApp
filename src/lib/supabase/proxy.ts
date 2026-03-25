@@ -25,13 +25,12 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+  // IMPORTANT: Do NOT add any logic between createServerClient and getUser()
+  // that could cause issues. getUser() refreshes the session cookie if needed.
+  // We intentionally do NOT redirect here — let the client pages handle auth.
+  // Redirecting in middleware based on getUser() causes race conditions where
+  // a valid session gets rejected before the cookie finishes propagating.
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }
