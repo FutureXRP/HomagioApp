@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function Login() {
@@ -11,6 +11,17 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    const supabase = createClient()
+    // If already logged in, go straight to dashboard
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        window.location.href = '/dashboard'
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -18,9 +29,15 @@ export default function Login() {
     const supabase = createClient()
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { setError(error.message); setLoading(false); return }
-      if (data.session) { window.location.href = '/dashboard' }
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+      // Do NOT redirect here manually.
+      // onAuthStateChange above will fire with the new session
+      // and handle the redirect once the cookie is fully written.
     } catch (err) {
       setError('Something went wrong. Please try again.')
       setLoading(false)
@@ -55,7 +72,7 @@ export default function Login() {
           <div style={{fontSize: '14px', color: '#888', marginTop: '4px'}}>Sign in to your account</div>
         </div>
 
-        <button onClick={handleGoogleLogin} style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #e5e5e5', background: '#fff', fontSize: '15px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px'}}>
+        <button onClick={handleGoogleLogin} style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1.5px solid #e5e5e5', background: '#fff', fontSize: '15px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px', fontFamily: 'inherit'}}>
           <svg width="18" height="18" viewBox="0 0 18 18">
             <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
             <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
@@ -74,17 +91,26 @@ export default function Login() {
         <form onSubmit={handleLogin}>
           <div style={{marginBottom: '16px'}}>
             <label style={{display: 'block', fontSize: '14px', fontWeight: 500, color: '#333', marginBottom: '6px'}}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}} />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required
+              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}} />
           </div>
           <div style={{marginBottom: '8px'}}>
             <label style={{display: 'block', fontSize: '14px', fontWeight: 500, color: '#333', marginBottom: '6px'}}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" required style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}} />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" required
+              style={{width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #e5e5e5', fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'}} />
           </div>
           <div style={{textAlign: 'right', marginBottom: '24px'}}>
-            <button type="button" onClick={handleForgotPassword} style={{background: 'none', border: 'none', color: '#006aff', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit'}}>Forgot password?</button>
+            <button type="button" onClick={handleForgotPassword} style={{background: 'none', border: 'none', color: '#006aff', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit'}}>
+              Forgot password?
+            </button>
           </div>
-          {error && <div style={{background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: '#dc2626', marginBottom: '16px'}}>{error}</div>}
-          <button type="submit" disabled={loading} style={{width: '100%', padding: '12px', borderRadius: '8px', background: loading ? '#93c5fd' : '#006aff', color: '#fff', border: 'none', fontSize: '15px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit'}}>
+          {error && (
+            <div style={{background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: '#dc2626', marginBottom: '16px'}}>
+              {error}
+            </div>
+          )}
+          <button type="submit" disabled={loading}
+            style={{width: '100%', padding: '12px', borderRadius: '8px', background: loading ? '#93c5fd' : '#006aff', color: '#fff', border: 'none', fontSize: '15px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit'}}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
