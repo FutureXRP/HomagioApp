@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function Login() {
@@ -11,17 +11,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const supabase = createClient()
-    // If already logged in, go straight to dashboard
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        window.location.href = '/dashboard'
-      }
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -29,15 +18,20 @@ export default function Login() {
     const supabase = createClient()
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
         setError(error.message)
         setLoading(false)
         return
       }
-      // Do NOT redirect here manually.
-      // onAuthStateChange above will fire with the new session
-      // and handle the redirect once the cookie is fully written.
+      if (data.session) {
+        // Redirect to /loading first — this gives the Supabase client time to
+        // store the session tokens in cookies before the dashboard tries to read them.
+        // Skipping this step causes a prefetch race condition where Next.js sends
+        // the /dashboard server request before tokens are stored, resulting in a
+        // permanent loading spinner.
+        window.location.replace('/loading')
+      }
     } catch (err) {
       setError('Something went wrong. Please try again.')
       setLoading(false)
