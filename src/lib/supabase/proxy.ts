@@ -25,11 +25,9 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Do NOT add any logic between createServerClient and getUser()
-  // that could cause issues. getUser() refreshes the session cookie if needed.
-  // We intentionally do NOT redirect here — let the client pages handle auth.
-  // Redirecting in middleware based on getUser() causes race conditions where
-  // a valid session gets rejected before the cookie finishes propagating.
+  // Refresh the session token if needed.
+  // Do NOT add redirect logic here — causes race conditions with cookie propagation.
+  // Let client pages handle their own auth checks.
   await supabase.auth.getUser()
 
   return supabaseResponse
