@@ -38,32 +38,61 @@ export default function HomeDashboard({ params }: { params: { id: string } }) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const fetchHome = async () => {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { window.location.href = '/login'; return }
+    const supabase = createClient()
 
+    const fetchData = async (homeId: string) => {
       const { data: homeData, error: homeError } = await supabase
-        .from('homes').select('*').eq('id', params.id).single()
+        .from('homes').select('*').eq('id', homeId).single()
 
-      if (homeError || !homeData) { setError('Home not found'); setLoading(false); return }
+      if (homeError || !homeData) {
+        setError('Home not found')
+        setLoading(false)
+        return
+      }
 
       const { data: roomsData } = await supabase
-        .from('rooms').select('*').eq('home_id', params.id).order('created_at', { ascending: true })
+        .from('rooms').select('*').eq('home_id', homeId).order('created_at', { ascending: true })
 
       const { data: materialsData } = await supabase
-        .from('materials').select('*').eq('home_id', params.id).order('created_at', { ascending: false })
+        .from('materials').select('*').eq('home_id', homeId).order('created_at', { ascending: false })
 
       setHome(homeData)
       setRooms(roomsData || [])
       setMaterials(materialsData || [])
       setLoading(false)
     }
-    fetchHome()
+
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      // Session found — fetch data immediately
+      if (session?.user) {
+        await fetchData(params.id)
+        return
+      }
+      // No session yet — do NOT redirect here.
+      // Cookie may not have hydrated yet. Let onAuthStateChange handle it.
+    }
+
+    init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Session resolved — fetch data if not already loaded
+        await fetchData(params.id)
+      } else if (event === 'SIGNED_OUT') {
+        // Explicit sign out — safe to redirect
+        window.location.href = '/login'
+      } else if (event === 'INITIAL_SESSION' && !session) {
+        // Auth fully resolved with no session — genuinely not logged in
+        window.location.href = '/login'
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [params.id])
 
   if (loading) return (
-    <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f7f9fc', gap: '14px', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+    <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f7f9fc', gap: '14px', fontFamily: 'system-ui, sans-serif'}}>
       <div style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px'}}>hom<span style={{color: '#1a1a2e'}}>agio</span></div>
       <div style={{width: '32px', height: '32px', border: '2.5px solid #e9edf2', borderTop: '2.5px solid #006aff', borderRadius: '50%', animation: 'spin 0.8s linear infinite'}} />
       <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
@@ -71,7 +100,7 @@ export default function HomeDashboard({ params }: { params: { id: string } }) {
   )
 
   if (error) return (
-    <div style={{minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f7f9fc', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+    <div style={{minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f7f9fc', fontFamily: 'system-ui, sans-serif'}}>
       <div style={{textAlign: 'center'}}>
         <div style={{fontSize: '52px', marginBottom: '16px'}}>🏚️</div>
         <div style={{fontSize: '18px', fontWeight: 700, color: '#1a1a2e', marginBottom: '8px'}}>{error}</div>
@@ -85,9 +114,8 @@ export default function HomeDashboard({ params }: { params: { id: string } }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; }
-        body { font-family: 'DM Sans', system-ui, sans-serif; }
+        body { font-family: system-ui, sans-serif; }
         .room-card {
           padding: 18px;
           border: 1.5px solid #e9edf2;
@@ -109,7 +137,6 @@ export default function HomeDashboard({ params }: { params: { id: string } }) {
           border-radius: 10px;
           border: 1px solid #f3f4f6;
           transition: background 0.12s;
-          cursor: default;
         }
         .material-row:hover { background: #f9fafb; }
         .btn-primary {
@@ -152,7 +179,7 @@ export default function HomeDashboard({ params }: { params: { id: string } }) {
         }
       `}</style>
 
-      <div style={{minHeight: '100vh', background: '#f7f9fc', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+      <div style={{minHeight: '100vh', background: '#f7f9fc', fontFamily: 'system-ui, sans-serif'}}>
 
         {/* Nav */}
         <nav style={{background: '#fff', borderBottom: '1px solid #e9edf2', padding: '0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100}}>
@@ -171,7 +198,6 @@ export default function HomeDashboard({ params }: { params: { id: string } }) {
 
           {/* Hero Card */}
           <div style={{background: '#fff', borderRadius: '20px', border: '1px solid #e9edf2', overflow: 'hidden', marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)'}}>
-            {/* Colored header strip */}
             <div style={{height: '8px', background: 'linear-gradient(90deg, #006aff 0%, #3b82f6 100%)'}} />
             <div style={{padding: '32px'}}>
               <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'}}>
@@ -227,7 +253,7 @@ export default function HomeDashboard({ params }: { params: { id: string } }) {
               <div style={{textAlign: 'center', padding: '48px 32px', border: '2px dashed #e9edf2', borderRadius: '12px', background: '#fafbfc'}}>
                 <div style={{fontSize: '36px', marginBottom: '12px'}}>🚪</div>
                 <div style={{fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px'}}>No rooms yet</div>
-                <div style={{fontSize: '13px', color: '#9ca3af', marginBottom: '20px', maxWidth: '320px', margin: '0 auto 20px'}}>Add rooms to start cataloging your materials, finishes, and fixtures.</div>
+                <div style={{fontSize: '13px', color: '#9ca3af', marginBottom: '20px'}}>Add rooms to start cataloging your materials, finishes, and fixtures.</div>
                 <button className="btn-primary" onClick={() => window.location.href = `/homes/${params.id}/rooms/add`}>
                   Add Your First Room
                 </button>
@@ -242,7 +268,6 @@ export default function HomeDashboard({ params }: { params: { id: string } }) {
                     <div style={{fontSize: '12px', color: '#9ca3af', textTransform: 'capitalize'}}>{room.type || 'Room'}</div>
                   </div>
                 ))}
-                {/* Add room tile */}
                 <div
                   onClick={() => window.location.href = `/homes/${params.id}/rooms/add`}
                   style={{padding: '18px', border: '2px dashed #e9edf2', borderRadius: '12px', cursor: 'pointer', background: '#fafbfc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '100px', transition: 'border-color 0.15s, background 0.12s'}}
