@@ -44,8 +44,8 @@ const FEATURES = [
   },
   {
     icon: '💰',
-    title: "Homagio Estimate™",
-    desc: 'See your home\'s estimated value and track it over time.',
+    title: 'Homagio Estimate™',
+    desc: "See your home's estimated value and track it over time.",
     href: '#',
     color: '#059669',
     bgColor: '#f0fdf4',
@@ -65,29 +65,46 @@ const FEATURES = [
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [homesCount, setHomesCount] = useState<number | null>(null)
+  const [homesCount, setHomesCount] = useState<number>(0)
 
   useEffect(() => {
     const supabase = createClient()
 
+    const loadDashboard = async (userId: string) => {
+      const { count } = await supabase
+        .from('homes')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+      setHomesCount(count ?? 0)
+      setLoading(false)
+    }
+
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
+      // Session found — load dashboard immediately
       if (session?.user) {
         setUser(session.user)
-        // Fetch homes count
-        const { count } = await supabase.from('homes').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id)
-        setHomesCount(count ?? 0)
-        setLoading(false)
+        await loadDashboard(session.user.id)
         return
       }
-      window.location.href = '/login'
+      // No session yet — do NOT redirect here.
+      // Cookie may not have hydrated yet. Let onAuthStateChange handle it.
     }
 
     init()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) { setUser(session.user); setLoading(false) }
-      else if (event === 'SIGNED_OUT') { window.location.href = '/login' }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Session resolved — load dashboard if not already loaded
+        setUser(session.user)
+        await loadDashboard(session.user.id)
+      } else if (event === 'SIGNED_OUT') {
+        // Explicit sign out — safe to redirect
+        window.location.href = '/login'
+      } else if (event === 'INITIAL_SESSION' && !session) {
+        // Auth fully resolved with no session — genuinely not logged in
+        window.location.href = '/login'
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -104,7 +121,7 @@ export default function Dashboard() {
     : user?.email?.split('@')[0] || 'there'
 
   if (loading) return (
-    <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f7f9fc', gap: '16px', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+    <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f7f9fc', gap: '16px', fontFamily: 'system-ui, sans-serif'}}>
       <div style={{fontSize: '24px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px'}}>hom<span style={{color: '#1a1a2e'}}>agio</span></div>
       <div style={{width: '32px', height: '32px', border: '2.5px solid #e9edf2', borderTop: '2.5px solid #006aff', borderRadius: '50%', animation: 'spin 0.8s linear infinite'}} />
       <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
@@ -116,9 +133,8 @@ export default function Dashboard() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
         * { box-sizing: border-box; }
-        body { font-family: 'DM Sans', system-ui, sans-serif; }
+        body { font-family: system-ui, sans-serif; }
         .feature-card {
           background: #fff;
           border: 1.5px solid #e9edf2;
@@ -127,8 +143,6 @@ export default function Dashboard() {
           cursor: pointer;
           position: relative;
           transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
-          text-decoration: none;
-          display: block;
         }
         .feature-card.active:hover {
           border-color: #006aff;
@@ -155,7 +169,7 @@ export default function Dashboard() {
         .nav-link:hover { background: #f7f9fc; border-color: #d1d5db; }
       `}</style>
 
-      <div style={{minHeight: '100vh', background: '#f7f9fc', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
+      <div style={{minHeight: '100vh', background: '#f7f9fc', fontFamily: 'system-ui, sans-serif'}}>
 
         {/* Nav */}
         <nav style={{background: '#fff', borderBottom: '1px solid #e9edf2', padding: '0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100}}>
@@ -169,7 +183,7 @@ export default function Dashboard() {
               </div>
               <span style={{fontWeight: 500}}>{user?.user_metadata?.full_name || user?.email}</span>
             </div>
-            <button onClick={handleSignOut} style={{padding: '7px 14px', borderRadius: '8px', border: '1.5px solid #e9edf2', background: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', color: '#374151', fontFamily: 'inherit', transition: 'background 0.12s'}}>
+            <button onClick={handleSignOut} style={{padding: '7px 14px', borderRadius: '8px', border: '1.5px solid #e9edf2', background: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', color: '#374151', fontFamily: 'inherit'}}>
               Sign Out
             </button>
           </div>
@@ -193,7 +207,7 @@ export default function Dashboard() {
           {isNewUser && (
             <div style={{background: 'linear-gradient(135deg, #006aff 0%, #3b82f6 100%)', borderRadius: '20px', padding: '36px 40px', marginBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap'}}>
               <div>
-                <div style={{fontSize: '22px', fontWeight: 700, color: '#fff', marginBottom: '6px', letterSpacing: '-0.25px'}}>
+                <div style={{fontSize: '22px', fontWeight: 700, color: '#fff', marginBottom: '6px'}}>
                   Add your first home
                 </div>
                 <div style={{fontSize: '14px', color: 'rgba(255,255,255,0.8)', maxWidth: '420px', lineHeight: 1.6}}>
@@ -202,7 +216,7 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => window.location.href = '/homes/add'}
-                style={{background: '#fff', color: '#006aff', border: 'none', padding: '13px 28px', borderRadius: '10px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, transition: 'transform 0.1s'}}
+                style={{background: '#fff', color: '#006aff', border: 'none', padding: '13px 28px', borderRadius: '10px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0}}
               >
                 + Add My First Home
               </button>
@@ -232,7 +246,7 @@ export default function Dashboard() {
                   <div style={{fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px'}}>{feature.title}</div>
                   <div style={{fontSize: '13px', color: '#6b7280', lineHeight: 1.6}}>{feature.desc}</div>
                   {feature.active && (
-                    <div style={{marginTop: '14px', fontSize: '13px', fontWeight: 600, color: feature.color, display: 'flex', alignItems: 'center', gap: '4px'}}>
+                    <div style={{marginTop: '14px', fontSize: '13px', fontWeight: 600, color: feature.color}}>
                       Get started →
                     </div>
                   )}
