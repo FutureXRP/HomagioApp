@@ -1,37 +1,41 @@
 export const dynamic = 'force-dynamic'
 
 async function getPublicData() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  const headers = {
-    'apikey': supabaseKey,
-    'Authorization': `Bearer ${supabaseKey}`,
-    'Content-Type': 'application/json',
-  }
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  const homesRes = await fetch(
-    `${supabaseUrl}/rest/v1/homes?is_public=eq.true&photo_url=not.is.null&select=id,name,address,city,state,zip,bedrooms,bathrooms,square_feet,year_built,photo_url,value_estimate&order=created_at.desc&limit=3`,
-    { headers, next: { revalidate: 0 } }
-  )
-  const featuredHomes = homesRes.ok ? await homesRes.json() : []
+    if (!supabaseUrl || !supabaseKey) {
+      return { featuredHomes: [], homesCount: 0, roomsCount: 0, materialsCount: 0 }
+    }
 
-  const [homesCountRes, roomsCountRes, materialsCountRes] = await Promise.all([
-    fetch(`${supabaseUrl}/rest/v1/homes?select=id`, { headers, next: { revalidate: 0 } }),
-    fetch(`${supabaseUrl}/rest/v1/rooms?select=id`, { headers, next: { revalidate: 0 } }),
-    fetch(`${supabaseUrl}/rest/v1/materials?select=id`, { headers, next: { revalidate: 0 } }),
-  ])
+    const headers = {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+    }
 
-  const [allHomes, allRooms, allMaterials] = await Promise.all([
-    homesCountRes.ok ? homesCountRes.json() : [],
-    roomsCountRes.ok ? roomsCountRes.json() : [],
-    materialsCountRes.ok ? materialsCountRes.json() : [],
-  ])
+    const [homesRes, allHomesRes, allRoomsRes, allMaterialsRes] = await Promise.allSettled([
+      fetch(`${supabaseUrl}/rest/v1/homes?is_public=eq.true&photo_url=not.is.null&select=id,name,address,city,state,zip,bedrooms,bathrooms,square_feet,year_built,photo_url,value_estimate&order=created_at.desc&limit=3`, { headers, cache: 'no-store' }),
+      fetch(`${supabaseUrl}/rest/v1/homes?select=id`, { headers, cache: 'no-store' }),
+      fetch(`${supabaseUrl}/rest/v1/rooms?select=id`, { headers, cache: 'no-store' }),
+      fetch(`${supabaseUrl}/rest/v1/materials?select=id`, { headers, cache: 'no-store' }),
+    ])
 
-  return {
-    featuredHomes,
-    homesCount: allHomes.length ?? 0,
-    roomsCount: allRooms.length ?? 0,
-    materialsCount: allMaterials.length ?? 0,
+    const featuredHomes = homesRes.status === 'fulfilled' && homesRes.value.ok ? await homesRes.value.json() : []
+    const allHomes = allHomesRes.status === 'fulfilled' && allHomesRes.value.ok ? await allHomesRes.value.json() : []
+    const allRooms = allRoomsRes.status === 'fulfilled' && allRoomsRes.value.ok ? await allRoomsRes.value.json() : []
+    const allMaterials = allMaterialsRes.status === 'fulfilled' && allMaterialsRes.value.ok ? await allMaterialsRes.value.json() : []
+
+    return {
+      featuredHomes: Array.isArray(featuredHomes) ? featuredHomes : [],
+      homesCount: Array.isArray(allHomes) ? allHomes.length : 0,
+      roomsCount: Array.isArray(allRooms) ? allRooms.length : 0,
+      materialsCount: Array.isArray(allMaterials) ? allMaterials.length : 0,
+    }
+  } catch (err) {
+    console.error('Landing page data fetch error:', err)
+    return { featuredHomes: [], homesCount: 0, roomsCount: 0, materialsCount: 0 }
   }
 }
 
@@ -43,8 +47,6 @@ export default async function Home() {
       <style>{`
         .nav-link-item { padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #444; text-decoration: none; transition: background 0.12s; }
         .nav-link-item:hover { background: #f5f5f5; color: #006aff; }
-        .hamburger { display: none; }
-        .mobile-menu { display: none; }
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .desktop-buttons { display: none !important; }
@@ -60,8 +62,6 @@ export default async function Home() {
         <a href="/" style={{fontSize: '26px', fontWeight: 700, color: '#006aff', letterSpacing: '-1px', textDecoration: 'none'}}>
           hom<span style={{color: '#1a1a1a'}}>agio</span>
         </a>
-
-        {/* Desktop nav links */}
         <div className="desktop-nav" style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
           <a href="/signup" className="nav-link-item">Catalogue</a>
           <a href="/explore" className="nav-link-item">Explore</a>
@@ -69,15 +69,11 @@ export default async function Home() {
           <a href="/about" className="nav-link-item">About Us</a>
           <a href="/contact" className="nav-link-item">Contact</a>
         </div>
-
-        {/* Desktop auth buttons */}
         <div className="desktop-buttons" style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
           <a href="/login"><button style={{padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: '#006aff', border: '1.5px solid #006aff', background: 'transparent', cursor: 'pointer'}}>Sign In</button></a>
           <a href="/signup"><button style={{padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#fff', background: '#006aff', border: 'none', cursor: 'pointer'}}>Join Free</button></a>
         </div>
-
-        {/* Mobile hamburger */}
-        <div className="hamburger" style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+        <div className="hamburger" style={{display: 'none', alignItems: 'center', gap: '12px'}}>
           <a href="/login" style={{fontSize: '14px', color: '#006aff', textDecoration: 'none', fontWeight: 500}}>Sign In</a>
           <details style={{position: 'relative'}}>
             <summary style={{listStyle: 'none', cursor: 'pointer', padding: '8px', border: '1.5px solid #e5e5e5', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px', width: '36px', alignItems: 'center'}}>
@@ -157,9 +153,7 @@ export default async function Home() {
         {featuredHomes.length > 0 ? (
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px'}}>
             {featuredHomes.map((home: any) => (
-              <a key={home.id} href={`/explore/${home.id}`} style={{textDecoration: 'none', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e5e5', background: '#fff', display: 'block', transition: 'box-shadow 0.15s'}}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 6px 24px rgba(0,0,0,0.1)'}
-                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'none'}>
+              <a key={home.id} href={`/explore/${home.id}`} style={{textDecoration: 'none', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e5e5', background: '#fff', display: 'block'}}>
                 <div style={{position: 'relative', height: '220px', overflow: 'hidden', background: '#0D1B2A'}}>
                   {home.photo_url
                     ? <img src={home.photo_url} alt={home.name || home.address} style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}} />
@@ -221,7 +215,7 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Features grid */}
+      {/* Features */}
       <div style={{padding: '56px 32px', maxWidth: '1200px', margin: '0 auto'}}>
         <div style={{textAlign: 'center', marginBottom: '48px'}}>
           <h2 style={{fontSize: '32px', fontWeight: 700, letterSpacing: '-0.5px'}}>Everything your home needs, in one place</h2>
