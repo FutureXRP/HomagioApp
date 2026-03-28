@@ -8,6 +8,7 @@ export async function middleware(request: NextRequest) {
   // No getUser(), no cookie touching, just pass through
   const isPublicRoute =
     path === '/' ||
+    path.startsWith('/explore') ||
     path.startsWith('/auth') ||
     path.startsWith('/api') ||
     path.startsWith('/loading')
