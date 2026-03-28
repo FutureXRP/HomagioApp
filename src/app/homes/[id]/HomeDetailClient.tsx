@@ -1,35 +1,23 @@
 'use client'
 
-const ROOM_ICONS: Record<string, string> = {
-  bedroom: '🛏️', bathroom: '🛁', kitchen: '🍳', living: '🛋️',
-  dining: '🍽️', office: '💼', garage: '🚗', basement: '🏗️',
-  exterior: '🏡', laundry: '👕', utility: '🔧', other: '🚪',
-}
-
-function getRoomIcon(type: string) {
-  if (!type) return '🚪'
-  const key = type.toLowerCase()
-  for (const k of Object.keys(ROOM_ICONS)) {
-    if (key.includes(k)) return ROOM_ICONS[k]
-  }
-  return '🚪'
-}
-
-export default function HomeDetailClient({ home, rooms, materials, homeId }: {
-  home: any, rooms: any[], materials: any[], homeId: string
+export default function MaterialDetailClient({ material, homeId, roomId }: {
+  material: any, homeId: string, roomId: string
 }) {
-  const totalMaterialValue = materials.reduce((sum, m) => sum + (m.cost || 0), 0)
+  const cost = material.cost > 0 ? `$${(material.cost / 100).toLocaleString()}` : null
+
+  const details = [
+    { label: 'Category', value: material.category },
+    { label: 'Brand', value: material.brand },
+    { label: 'Color', value: material.color },
+    { label: 'Finish', value: material.finish },
+    { label: 'Cost', value: cost },
+  ].filter(d => d.value)
 
   return (
     <>
       <style>{`
         * { box-sizing: border-box; }
         body { font-family: system-ui, sans-serif; }
-        .room-card { padding: 18px; border: 1.5px solid #e9edf2; border-radius: 12px; cursor: pointer; background: #fff; transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s; }
-        .room-card:hover { border-color: #006aff; box-shadow: 0 4px 16px rgba(0,106,255,0.1); transform: translateY(-1px); }
-        .material-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 10px; border: 1px solid #f3f4f6; transition: background 0.12s; }
-        .material-row:hover { background: #f9fafb; }
-        .tag { display: inline-flex; align-items: center; gap: 4px; background: #f3f4f6; color: #374151; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
       `}</style>
 
       <div style={{minHeight: '100vh', background: '#f7f9fc', fontFamily: 'system-ui, sans-serif'}}>
@@ -37,123 +25,89 @@ export default function HomeDetailClient({ home, rooms, materials, homeId }: {
           <a href="/dashboard" style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px', textDecoration: 'none'}}>
             hom<span style={{color: '#1a1a2e'}}>agio</span>
           </a>
-          <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
-            <a href="/dashboard/homes" style={{fontSize: '13px', color: '#6b7280', textDecoration: 'none', fontWeight: 500}}>← My Homes</a>
-            <button onClick={() => window.location.href = `/homes/${homeId}/rooms/add`}
-              style={{background: '#006aff', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '9px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
-              + Add Room
-            </button>
-          </div>
+          <a href={`/homes/${homeId}/rooms/${roomId}`} style={{fontSize: '13px', color: '#6b7280', textDecoration: 'none', fontWeight: 500}}>
+            ← Back to Room
+          </a>
         </nav>
 
-        <div style={{maxWidth: '1180px', margin: '0 auto', padding: '40px 32px'}}>
-          <div style={{background: '#fff', borderRadius: '20px', border: '1px solid #e9edf2', overflow: 'hidden', marginBottom: '24px'}}>
-            <div style={{height: '8px', background: 'linear-gradient(90deg, #006aff 0%, #3b82f6 100%)'}} />
-            <div style={{padding: '32px'}}>
-              <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'}}>
+        <div style={{maxWidth: '720px', margin: '0 auto', padding: '40px 32px'}}>
+
+          {/* Photo */}
+          {material.photo_url && (
+            <div style={{borderRadius: '20px', overflow: 'hidden', marginBottom: '24px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)'}}>
+              <img src={material.photo_url} alt={material.name} style={{width: '100%', height: '360px', objectFit: 'cover', display: 'block'}} />
+            </div>
+          )}
+
+          {/* Main card */}
+          <div style={{background: '#fff', borderRadius: '20px', border: '1px solid #e9edf2', overflow: 'hidden', marginBottom: '16px'}}>
+            <div style={{height: '6px', background: 'linear-gradient(90deg, #006aff 0%, #3b82f6 100%)'}} />
+            <div style={{padding: '28px 32px'}}>
+              <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '24px'}}>
                 <div>
-                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px'}}>
-                    <span style={{fontSize: '28px'}}>🏠</span>
-                    <h1 style={{fontSize: '26px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '-0.5px'}}>{home.name || home.address}</h1>
-                  </div>
-                  <div style={{fontSize: '14px', color: '#6b7280', marginBottom: '14px'}}>{home.address}, {home.city}, {home.state} {home.zip}</div>
-                  <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
-                    {home.bedrooms && <span className="tag">🛏️ {home.bedrooms} beds</span>}
-                    {home.bathrooms && <span className="tag">🛁 {home.bathrooms} baths</span>}
-                    {home.square_feet && <span className="tag">📐 {home.square_feet.toLocaleString()} sqft</span>}
-                    {home.year_built && <span className="tag">📅 Built {home.year_built}</span>}
-                  </div>
+                  <h1 style={{fontSize: '24px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '-0.5px', marginBottom: '4px'}}>{material.name}</h1>
+                  {material.brand && <div style={{fontSize: '14px', color: '#6b7280'}}>by {material.brand}</div>}
                 </div>
-                <div style={{textAlign: 'right'}}>
-                  <div style={{fontSize: '12px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px'}}>Homagio Estimate™</div>
-                  <div style={{fontSize: '28px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '-1px'}}>—</div>
-                  <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '2px'}}>Coming soon</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '28px'}}>
-            {[
-              {icon: '🚪', label: 'Rooms', value: rooms.length},
-              {icon: '📦', label: 'Materials', value: materials.length},
-              {icon: '💰', label: 'Materials Value', value: totalMaterialValue > 0 ? `$${Math.round(totalMaterialValue / 100).toLocaleString()}` : '$0'},
-              {icon: '📸', label: 'Photos', value: '0'},
-            ].map(stat => (
-              <div key={stat.label} style={{background: '#fff', border: '1px solid #e9edf2', borderRadius: '14px', padding: '22px 20px', textAlign: 'center'}}>
-                <div style={{fontSize: '22px', marginBottom: '8px'}}>{stat.icon}</div>
-                <div style={{fontSize: '24px', fontWeight: 700, color: '#1a1a2e'}}>{stat.value}</div>
-                <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '4px', fontWeight: 500}}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e9edf2', padding: '28px', marginBottom: '24px'}}>
-            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px'}}>
-              <div>
-                <h2 style={{fontSize: '17px', fontWeight: 700, color: '#1a1a2e'}}>Rooms</h2>
-                <div style={{fontSize: '13px', color: '#9ca3af', marginTop: '2px'}}>{rooms.length} room{rooms.length !== 1 ? 's' : ''} cataloged</div>
-              </div>
-              <button onClick={() => window.location.href = `/homes/${homeId}/rooms/add`}
-                style={{background: 'transparent', color: '#006aff', border: '1.5px solid #006aff', padding: '8px 16px', borderRadius: '9px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
-                + Add Room
-              </button>
-            </div>
-
-            {rooms.length === 0 ? (
-              <div style={{textAlign: 'center', padding: '48px 32px', border: '2px dashed #e9edf2', borderRadius: '12px', background: '#fafbfc'}}>
-                <div style={{fontSize: '36px', marginBottom: '12px'}}>🚪</div>
-                <div style={{fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px'}}>No rooms yet</div>
-                <div style={{fontSize: '13px', color: '#9ca3af', marginBottom: '20px'}}>Add rooms to start cataloging your materials.</div>
-                <button onClick={() => window.location.href = `/homes/${homeId}/rooms/add`}
-                  style={{background: '#006aff', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '9px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
-                  Add Your First Room
-                </button>
-              </div>
-            ) : (
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '12px'}}>
-                {rooms.map(room => (
-                  <div key={room.id} className="room-card" onClick={() => window.location.href = `/homes/${homeId}/rooms/${room.id}`}>
-                    <div style={{fontSize: '26px', marginBottom: '10px'}}>{getRoomIcon(room.type)}</div>
-                    <div style={{fontSize: '14px', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px'}}>{room.name}</div>
-                    <div style={{fontSize: '12px', color: '#9ca3af', textTransform: 'capitalize'}}>{room.type || 'Room'}</div>
+                {cost && (
+                  <div style={{textAlign: 'right'}}>
+                    <div style={{fontSize: '12px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px'}}>Cost</div>
+                    <div style={{fontSize: '28px', fontWeight: 700, color: '#006aff', letterSpacing: '-1px'}}>{cost}</div>
                   </div>
-                ))}
-                <div onClick={() => window.location.href = `/homes/${homeId}/rooms/add`}
-                  style={{padding: '18px', border: '2px dashed #e9edf2', borderRadius: '12px', cursor: 'pointer', background: '#fafbfc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '100px'}}
-                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#006aff'; (e.currentTarget as HTMLDivElement).style.background = '#f0f6ff' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e9edf2'; (e.currentTarget as HTMLDivElement).style.background = '#fafbfc' }}
-                >
-                  <div style={{fontSize: '22px', color: '#9ca3af'}}>+</div>
-                  <div style={{fontSize: '12px', color: '#9ca3af', fontWeight: 500}}>Add Room</div>
-                </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e9edf2', padding: '28px'}}>
-            <h2 style={{fontSize: '17px', fontWeight: 700, color: '#1a1a2e', marginBottom: '20px'}}>Recent Materials</h2>
-            {materials.length === 0 ? (
-              <div style={{textAlign: 'center', padding: '40px 32px', border: '2px dashed #e9edf2', borderRadius: '12px', background: '#fafbfc'}}>
-                <div style={{fontSize: '36px', marginBottom: '12px'}}>📦</div>
-                <div style={{fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px'}}>No materials yet</div>
-                <div style={{fontSize: '13px', color: '#9ca3af'}}>Open a room to start cataloging materials.</div>
-              </div>
-            ) : (
-              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                {materials.slice(0, 5).map(material => (
-                  <div key={material.id} className="material-row">
-                    <div style={{width: '42px', height: '42px', background: '#f0f6ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0}}>📦</div>
-                    <div style={{flex: 1, minWidth: 0}}>
-                      <div style={{fontSize: '14px', fontWeight: 600, color: '#1a1a2e', marginBottom: '2px'}}>{material.name}</div>
-                      <div style={{fontSize: '12px', color: '#9ca3af'}}>{[material.brand, material.color, material.finish].filter(Boolean).join(' · ') || 'No details added'}</div>
+              {/* Detail grid */}
+              {details.length > 0 && (
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', marginBottom: material.notes ? '24px' : '0'}}>
+                  {details.map(detail => (
+                    <div key={detail.label} style={{background: '#f7f9fc', borderRadius: '10px', padding: '14px 16px'}}>
+                      <div style={{fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px'}}>{detail.label}</div>
+                      <div style={{fontSize: '14px', fontWeight: 600, color: '#1a1a2e'}}>{detail.value}</div>
                     </div>
-                    {material.cost > 0 && <div style={{fontSize: '15px', fontWeight: 700, color: '#006aff', flexShrink: 0}}>${(material.cost / 100).toLocaleString()}</div>}
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+
+              {/* Notes */}
+              {material.notes && (
+                <div style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #f3f4f6'}}>
+                  <div style={{fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px'}}>Notes</div>
+                  <div style={{fontSize: '14px', color: '#374151', lineHeight: 1.7}}>{material.notes}</div>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Buy button */}
+          {(material.purchase_url || material.affiliate_url) && (
+            <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e9edf2', padding: '24px 28px', marginBottom: '16px'}}>
+              <div style={{fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '14px'}}>Shop This Material</div>
+              <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                {material.purchase_url && (
+                  <a href={material.purchase_url} target="_blank" rel="noopener noreferrer"
+                    style={{flex: 1, minWidth: '160px', background: '#006aff', color: '#fff', padding: '12px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', textAlign: 'center', display: 'block'}}>
+                    🛒 Buy This Material
+                  </a>
+                )}
+                {material.affiliate_url && (
+                  <a href={material.affiliate_url} target="_blank" rel="noopener noreferrer"
+                    style={{flex: 1, minWidth: '160px', background: '#f0f6ff', color: '#006aff', padding: '12px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', textAlign: 'center', display: 'block', border: '1.5px solid #006aff'}}>
+                    🔗 Affiliate Link
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* AI Detection teaser */}
+          <div style={{background: '#f0f6ff', border: '1px solid #bfdbfe', borderRadius: '16px', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '14px'}}>
+            <div style={{fontSize: '28px'}}>🤖</div>
+            <div>
+              <div style={{fontSize: '14px', fontWeight: 700, color: '#1e40af', marginBottom: '3px'}}>AI Material Detection — Coming Soon</div>
+              <div style={{fontSize: '13px', color: '#3b82f6', lineHeight: 1.5}}>Upload a photo and our AI will automatically identify the material, brand, color, and finish.</div>
+            </div>
+          </div>
+
         </div>
       </div>
     </>
