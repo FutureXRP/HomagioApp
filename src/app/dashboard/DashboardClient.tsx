@@ -37,9 +37,10 @@ export default function DashboardClient({ user, homesCount }: { user: any, homes
 
       <div style={{minHeight: '100vh', background: '#f7f9fc', fontFamily: 'system-ui, sans-serif'}}>
         <nav style={{background: '#fff', borderBottom: '1px solid #e9edf2', padding: '0 32px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100}}>
-          <div style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px'}}>
+          {/* Logo links to landing page */}
+          <a href="/" style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px', textDecoration: 'none'}}>
             hom<span style={{color: '#1a1a2e'}}>agio</span>
-          </div>
+          </a>
           <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
             <div style={{fontSize: '13px', color: '#6b7280', padding: '0 8px', display: 'flex', alignItems: 'center', gap: '6px'}}>
               <div style={{width: '28px', height: '28px', borderRadius: '50%', background: '#006aff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700}}>
