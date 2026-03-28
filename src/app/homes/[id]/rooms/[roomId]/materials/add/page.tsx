@@ -2,8 +2,11 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+
+const CLOUDINARY_CLOUD_NAME = 'dlb0guicc'
+const CLOUDINARY_UPLOAD_PRESET = 'HomagioApp'
 
 const MATERIAL_CATEGORIES = [
   'Flooring', 'Wall Paint', 'Tile', 'Countertops', 'Cabinets', 'Appliances',
@@ -26,17 +29,57 @@ export default function AddMaterial({ params }: { params: { id: string; roomId: 
   const [purchaseUrl, setPurchaseUrl] = useState('')
   const [affiliateUrl, setAffiliateUrl] = useState('')
   const [notes, setNotes] = useState('')
+  const [photoUrl, setPhotoUrl] = useState('')
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Please select an image file')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError('Image must be under 10MB')
+      return
+    }
+
+    setPhotoUploading(true)
+    setPhotoError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
+      formData.append('folder', 'homagio/materials')
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: 'POST', body: formData }
+      )
+
+      if (!response.ok) throw new Error('Upload failed')
+
+      const data = await response.json()
+      setPhotoUrl(data.secure_url)
+    } catch (err) {
+      setPhotoError('Upload failed. Please try again.')
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
     const supabase = createClient()
-
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { window.location.href = '/login'; return }
 
     const costInCents = cost ? Math.round(parseFloat(cost) * 100) : 0
 
@@ -51,6 +94,7 @@ export default function AddMaterial({ params }: { params: { id: string; roomId: 
       cost: costInCents,
       purchase_url: purchaseUrl.trim() || null,
       affiliate_url: affiliateUrl.trim() || null,
+      photo_url: photoUrl || null,
       ai_detected: false,
     })
 
@@ -71,21 +115,58 @@ export default function AddMaterial({ params }: { params: { id: string; roomId: 
           <p style={{fontSize: '15px', color: '#666', marginTop: '6px'}}>Catalog a material, finish, or fixture in this room.</p>
         </div>
 
-        {error && <div style={{background: '#fff0f0', border: '1px solid #ffc0c0', color: '#cc0000', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', fontSize: '14px'}}>{error}</div>}
+        {error && (
+          <div style={{background: '#fff0f0', border: '1px solid #ffc0c0', color: '#cc0000', padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', fontSize: '14px'}}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
+
+          {/* Photo Upload */}
           <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e5e5e5', padding: '28px', marginBottom: '16px'}}>
-            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px'}}>
-              <label style={{fontSize: '14px', fontWeight: 600, color: '#1a1a1a'}}>📸 Photo</label>
-              <span style={{fontSize: '11px', fontWeight: 600, color: '#fff', background: '#006aff', padding: '3px 10px', borderRadius: '20px'}}>COMING SOON</span>
-            </div>
-            <div style={{border: '2px dashed #e5e5e5', borderRadius: '10px', padding: '32px', textAlign: 'center', background: '#fafafa'}}>
-              <div style={{fontSize: '32px', marginBottom: '8px'}}>📷</div>
-              <div style={{fontSize: '14px', fontWeight: 500, color: '#aaa'}}>AI-powered photo detection</div>
-              <div style={{fontSize: '12px', color: '#bbb', marginTop: '4px'}}>Upload a photo and our AI will identify the material automatically</div>
-            </div>
+            <label style={{fontSize: '14px', fontWeight: 600, color: '#1a1a1a', display: 'block', marginBottom: '12px'}}>📸 Material Photo <span style={{fontSize: '12px', fontWeight: 400, color: '#888'}}>(optional)</span></label>
+
+            {photoUrl ? (
+              // Photo preview
+              <div style={{position: 'relative'}}>
+                <img src={photoUrl} alt="Material" style={{width: '100%', height: '220px', objectFit: 'cover', borderRadius: '10px', display: 'block'}} />
+                <button type="button" onClick={() => { setPhotoUrl(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                  style={{position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '20px', padding: '5px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
+                  Remove
+                </button>
+              </div>
+            ) : (
+              // Upload area
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{border: '2px dashed #e5e5e5', borderRadius: '10px', padding: '36px', textAlign: 'center', background: '#fafafa', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s'}}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#006aff'; (e.currentTarget as HTMLDivElement).style.background = '#f0f6ff' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e5e5e5'; (e.currentTarget as HTMLDivElement).style.background = '#fafafa' }}
+              >
+                {photoUploading ? (
+                  <>
+                    <div style={{width: '32px', height: '32px', border: '2.5px solid #e5e5e5', borderTop: '2.5px solid #006aff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px'}} />
+                    <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
+                    <div style={{fontSize: '14px', color: '#888'}}>Uploading...</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{fontSize: '32px', marginBottom: '8px'}}>📷</div>
+                    <div style={{fontSize: '14px', fontWeight: 600, color: '#444', marginBottom: '4px'}}>Click to upload a photo</div>
+                    <div style={{fontSize: '12px', color: '#aaa'}}>JPG, PNG, WEBP up to 10MB</div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {photoError && <div style={{fontSize: '13px', color: '#cc0000', marginTop: '8px'}}>{photoError}</div>}
+
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoUpload}
+              style={{display: 'none'}} />
           </div>
 
+          {/* Material Details */}
           <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e5e5e5', padding: '28px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '20px'}}>
             <h3 style={{fontSize: '15px', fontWeight: 700, color: '#1a1a1a', margin: 0}}>Material Details</h3>
             <div>
@@ -128,6 +209,7 @@ export default function AddMaterial({ params }: { params: { id: string; roomId: 
             </div>
           </div>
 
+          {/* Cost & Links */}
           <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e5e5e5', padding: '28px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '20px'}}>
             <h3 style={{fontSize: '15px', fontWeight: 700, color: '#1a1a1a', margin: 0}}>Cost & Links</h3>
             <div>
@@ -163,9 +245,9 @@ export default function AddMaterial({ params }: { params: { id: string; roomId: 
               style={{flex: 1, padding: '13px', borderRadius: '8px', border: '1.5px solid #e5e5e5', background: '#fff', fontSize: '15px', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center', color: '#444', textDecoration: 'none', display: 'block'}}>
               Cancel
             </a>
-            <button type="submit" disabled={loading || !name.trim()}
-              style={{flex: 2, padding: '13px', borderRadius: '8px', border: 'none', background: loading || !name.trim() ? '#ccc' : '#006aff', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: loading || !name.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit'}}>
-              {loading ? 'Saving...' : 'Save Material'}
+            <button type="submit" disabled={loading || !name.trim() || photoUploading}
+              style={{flex: 2, padding: '13px', borderRadius: '8px', border: 'none', background: loading || !name.trim() || photoUploading ? '#ccc' : '#006aff', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: loading || !name.trim() || photoUploading ? 'not-allowed' : 'pointer', fontFamily: 'inherit'}}>
+              {photoUploading ? 'Uploading photo...' : loading ? 'Saving...' : 'Save Material'}
             </button>
           </div>
         </form>
