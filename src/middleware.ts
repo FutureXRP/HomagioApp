@@ -2,6 +2,21 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname
+
+  // Public routes — skip ALL Supabase processing entirely
+  // No getUser(), no cookie touching, just pass through
+  const isPublicRoute =
+    path === '/' ||
+    path.startsWith('/auth') ||
+    path.startsWith('/api') ||
+    path.startsWith('/loading')
+
+  if (isPublicRoute) {
+    return NextResponse.next({ request })
+  }
+
+  // For all other routes, run the full session refresh
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -25,34 +40,20 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session — must be called before any redirects
   const { data: { user } } = await supabase.auth.getUser()
 
-  const path = request.nextUrl.pathname
-
-  // Public routes — never redirect these regardless of auth state
-  const isPublicRoute =
-    path === '/' ||
-    path.startsWith('/login') ||
-    path.startsWith('/signup') ||
-    path.startsWith('/auth') ||
-    path.startsWith('/loading') ||
-    path.startsWith('/api')
-
-  // Protected routes — require authentication
+  // Protected routes — require auth
   const isProtectedRoute =
     path.startsWith('/dashboard') ||
     path.startsWith('/homes')
 
-  // Redirect unauthenticated users away from protected routes
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Redirect logged-in users away from login/signup only
-  // (NOT from landing page — logged-in users can still visit /)
+  // Login/signup — redirect logged-in users to dashboard
   if ((path.startsWith('/login') || path.startsWith('/signup')) && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
