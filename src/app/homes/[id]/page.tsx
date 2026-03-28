@@ -4,7 +4,11 @@ import HomeDetailClient from './HomeDetailClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function HomeDashboard({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: { id: string }
+}
+
+export default async function HomeDashboard({ params }: PageProps) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
