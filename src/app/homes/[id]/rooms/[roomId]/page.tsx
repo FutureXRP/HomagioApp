@@ -4,7 +4,11 @@ import RoomDetailClient from './RoomDetailClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function RoomDetail({ params }: { params: { id: string; roomId: string } }) {
+interface PageProps {
+  params: { id: string; roomId: string }
+}
+
+export default async function RoomDetail({ params }: PageProps) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -16,7 +20,10 @@ export default async function RoomDetail({ params }: { params: { id: string; roo
   if (!room) notFound()
 
   const { data: materials } = await supabase
-    .from('materials').select('*').eq('room_id', params.roomId).order('created_at', { ascending: false })
+    .from('materials')
+    .select('*')
+    .eq('room_id', params.roomId)
+    .order('created_at', { ascending: false })
 
   return (
     <RoomDetailClient
