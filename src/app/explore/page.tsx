@@ -16,10 +16,5 @@ export default async function ExplorePage() {
     .eq('is_public', true)
     .order('created_at', { ascending: false })
 
-  return (
-    <ExploreClient
-      homes={homes || []}
-      mapboxToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN!}
-    />
-  )
+  return <ExploreClient homes={homes || []} />
 }
