@@ -28,9 +28,9 @@ Two user types:
 - Style: Zillow-inspired (clean, white, minimal, trustworthy)
 - Primary color: #006aff (Zillow blue)
 - Typography: System sans-serif, clean hierarchy
-- Brand name: homagio (lowercase logo, blue accent on "agio")
+- Brand name: homagio (lowercase logo, blue accent on "hom")
 - Flagship product term: "Homagio Estimate™" (like Zillow's Zestimate)
-- NOTE: Interior pages are functional but unstyled. Design polish pass planned after all core flows are built.
+- NOTE: Full design polish pass planned after all core flows are built
 
 ---
 
@@ -42,7 +42,7 @@ Two user types:
 | Database       | PostgreSQL via Supabase                 |
 | Auth           | Supabase Auth (email + Google OAuth)    |
 | Email          | Resend (welcome email working)          |
-| Image Storage  | Cloudinary (not yet set up)             |
+| Image Storage  | Cloudinary (✅ working)                 |
 | AI Detection   | OpenAI Vision API (not yet set up)      |
 | Maps           | Mapbox GL (not yet set up)              |
 | Payments       | Stripe + Stripe Connect (not yet set up)|
@@ -59,14 +59,20 @@ Two user types:
 - SUPABASE_SECRET_KEY
 - RESEND_API_KEY
 
+## ☁️ Cloudinary
+- Cloud Name: dlb0guicc
+- Upload Preset: HomagioApp (unsigned)
+- Folders: homagio/homes, homagio/rooms, homagio/materials
+- Upload goes directly from browser to Cloudinary (no server needed)
+
 ---
 
 ## 🗄️ Database Tables (all in Supabase)
 
 - profiles (id, email, full_name, avatar_url, role, subscription_tier, created_at)
-- homes (id, user_id, name, address, city, state, zip, lat, lng, year_built, square_feet, bedrooms, bathrooms, value_estimate, is_public, created_at)
-- rooms (id, home_id, name, type, floor, notes, created_at)
-- materials (id, room_id, home_id, name, brand, color, finish, notes, cost, purchase_url, affiliate_url, ai_detected, ai_confidence, created_at)
+- homes (id, user_id, name, address, city, state, zip, lat, lng, year_built, square_feet, bedrooms, bathrooms, value_estimate, photo_url, is_public, created_at)
+- rooms (id, home_id, name, type, floor, notes, photo_url, created_at)
+- materials (id, room_id, home_id, name, brand, color, finish, notes, cost, purchase_url, affiliate_url, photo_url, ai_detected, ai_confidence, created_at)
 - photos (id, home_id, room_id, url, ai_tags, ai_confidence, created_at)
 - budgets (id, home_id, room_id, project_name, estimated, actual, status, created_at)
 - saved_homes (id, user_id, home_id, created_at)
@@ -89,37 +95,66 @@ HomagioApp/
 │   │   │   ├── login/page.tsx                            ✅ working
 │   │   │   └── signup/page.tsx                           ✅ working
 │   │   ├── dashboard/
-│   │   │   ├── page.tsx                                  ✅ welcome screen with feature cards
-│   │   │   └── homes/page.tsx                            ✅ my homes list
+│   │   │   ├── page.tsx                                  ✅ server component
+│   │   │   ├── DashboardClient.tsx                       ✅ client UI
+│   │   │   └── homes/
+│   │   │       ├── page.tsx                              ✅ server component
+│   │   │       └── HomesDashboardClient.tsx              ✅ client UI
 │   │   ├── homes/
-│   │   │   ├── add/page.tsx                              ✅ working
+│   │   │   ├── add/page.tsx                              ✅ working + exterior auto-create
 │   │   │   └── [id]/
-│   │   │       ├── page.tsx                              ✅ working
+│   │   │       ├── page.tsx                              ✅ server component
+│   │   │       ├── HomeDetailClient.tsx                  ✅ with home photo upload
 │   │   │       └── rooms/
 │   │   │           ├── add/page.tsx                      ✅ working
 │   │   │           └── [roomId]/
-│   │   │               ├── page.tsx                      ✅ working
+│   │   │               ├── page.tsx                      ✅ server component
+│   │   │               ├── RoomDetailClient.tsx          ✅ with room photo upload
 │   │   │               └── materials/
-│   │   │                   └── add/page.tsx              ✅ working
+│   │   │                   ├── add/page.tsx              ✅ working + photo upload
+│   │   │                   └── [materialId]/
+│   │   │                       ├── page.tsx              ✅ server component
+│   │   │                       ├── MaterialDetailClient.tsx ✅ with edit button
+│   │   │                       └── edit/
+│   │   │                           ├── page.tsx          ✅ server component
+│   │   │                           └── EditMaterialClient.tsx ✅ with delete
 │   │   ├── loading/
-│   │   │   └── page.tsx                                  ✅ session loading spinner
+│   │   │   └── page.tsx                                  ✅ redirects to /dashboard
 │   │   ├── api/
 │   │   │   └── send-welcome/route.ts                     ✅ welcome email via Resend
 │   │   └── auth/
 │   │       └── callback/route.ts                         ✅ OAuth code exchange
-│   ├── middleware.ts                                      ✅ calls proxy to refresh session
+│   ├── middleware.ts                                      ✅ protects /dashboard + /homes routes
 │   └── lib/
 │       └── supabase/
 │           ├── client.ts                                 ✅ browser client
-│           ├── server.ts                                 ✅ server client
-│           └── proxy.ts                                  ✅ session refresh middleware
-├── vercel.json                                           ✅ framework: nextjs
+│           └── server.ts                                 ✅ server client
+├── vercel.json                                           ✅
 ├── next.config.js                                        ✅
 ├── tailwind.config.ts                                    ✅
 ├── tsconfig.json                                         ✅
 ├── postcss.config.js                                     ✅
-├── package.json                                          ✅ includes @supabase/ssr, resend
-└── CLAUDE.md                                             ✅ this file
+└── package.json                                          ✅
+```
+
+---
+
+## 🔧 Auth Architecture (CRITICAL — hard-won fix)
+
+The auth was completely rebuilt in Session 5 to fix race conditions.
+
+**Key principles:**
+- All protected pages are **server components** that call `supabase.auth.getUser()` server-side
+- Middleware at `src/middleware.ts` protects `/dashboard` and `/homes` routes — redirects to `/login` if no session
+- Client components handle UI only — no auth checks in client components
+- `proxy.ts` was deleted — middleware handles everything directly
+- Login redirects straight to `/dashboard` after `data.session` is confirmed
+- No `/loading` intermediate page needed (it just redirects to `/dashboard` now)
+- Never use `getSession()` for auth checks — always use `getUser()`
+
+**Page pattern:**
+```
+page.tsx (server) → checks auth with getUser() → fetches data → passes to XxxClient.tsx (client UI)
 ```
 
 ---
@@ -133,60 +168,63 @@ HomagioApp/
 - [x] GitHub repo, Next.js 14, Vercel Pro, live site
 
 ### ✅ Phase 1b — Auth Complete
-- [x] Supabase + @supabase/ssr (browser + server + proxy architecture)
-- [x] Email/password login working
+- [x] Supabase + @supabase/ssr (server component architecture)
+- [x] Email/password login working (single login, no race conditions)
 - [x] Google OAuth working
-- [x] Auth callback route working
-- [x] Middleware protecting /dashboard routes
+- [x] Middleware protecting /dashboard and /homes routes
 - [x] Welcome email via Resend on signup
 
 ### ✅ Phase 1c — Core Flows Complete
-- [x] Add Home flow
-- [x] Individual home page
+- [x] Add Home flow (with Exterior room auto-created)
+- [x] Individual home page with photo upload
 - [x] Add Room flow
-- [x] Room detail page
-- [x] Add Material flow (name, brand, category, color, finish, cost, purchase URL, affiliate URL)
-- [x] New dashboard welcome screen ("Welcome back, Matt!")
-- [x] My Homes moved to /dashboard/homes
+- [x] Room detail page with photo upload
+- [x] Add Material flow with photo upload
+- [x] Material detail page
+- [x] Edit Material flow (edit + delete)
+- [x] Dashboard welcome screen
+- [x] My Homes page
 
-### ⚠️ Known Issues (low priority, don't fix yet)
-- Google OAuth signup creates account then requires a second login before reaching dashboard
-  - Root cause: session cookie not fully propagated before /dashboard checks it
-  - Fix approach: update auth/callback to redirect to /dashboard (not /loading) and rely on onAuthStateChange
-  - HOLD OFF — app is working, risk of regression too high right now
+### ✅ Phase 2a — Photo Upload Complete
+- [x] Cloudinary integration (unsigned upload preset)
+- [x] Home exterior photo upload
+- [x] Room hero photo upload (saves to rooms.photo_url)
+- [x] Material photo upload (saves to materials.photo_url)
+- [x] Photos display as thumbnails in material lists
+- [x] Room cards show photo thumbnails when available
+- [x] Photo count tracked in stats
 
-### 📋 Phase 1d — Next
-- [ ] Design polish pass on all interior pages
-- [ ] Stripe subscriptions (Free/Premium/Pro)
-
-### 📋 Phase 2 — Core Product
-- [ ] Photo upload (Cloudinary)
-- [ ] AI material detection (OpenAI Vision)
+### 📋 Phase 2b — Next
+- [ ] AI material detection (OpenAI Vision API)
 - [ ] Budget tracker + ROI calculator
 - [ ] Shopping list generator + PDF export
 - [ ] Homagio Estimate™
-- [ ] Home Value Impact per material category
 
-### 📋 Phase 3 — Explore + Discovery + Affiliate System
+### 📋 Phase 3 — Stripe Subscriptions
+- [ ] Free/Premium/Pro tiers
+- [ ] Stripe Connect for affiliate payouts
+
+### 📋 Phase 4 — Explore + Discovery
 - [ ] Mapbox map integration
 - [ ] Public home profiles
 - [ ] Browse + filter nearby homes
-- [ ] Homagio Affiliate Revenue System (see below)
+- [ ] Homagio Affiliate Revenue System
 
-### 📋 Phase 4 — Pro Studio
+### 📋 Phase 5 — Pro Studio
 - [ ] Pro user dashboard
 - [ ] Client management
 - [ ] PDF spec sheet exports
 
-### 📋 Phase 5 — Retention + Growth
+### 📋 Phase 6 — Retention + Growth
 - [ ] Email notifications (Resend)
 - [ ] Home timeline
 - [ ] Maintenance reminders
+- [ ] Mobile polish pass (all pages)
 - [ ] React Native mobile app
 
 ---
 
-## 💰 Affiliate Revenue Model (build in Phase 3)
+## 💰 Affiliate Revenue Model (build in Phase 4)
 
 Homagio operates a single master affiliate account across all retailers.
 Every "Shop This Material" link routes through Homagio's affiliate links.
@@ -196,41 +234,25 @@ Every "Shop This Material" link routes through Homagio's affiliate links.
 - Option B: 60% homeowner / 40% Homagio
 - Option C: Tiered by subscription — Free: 70/30, Premium: 80/20, Pro: 85/15
 
-**Tech needed:**
-- Skimlinks or VigLink for automatic link conversion
-- Stripe Connect for homeowner payouts
-- Earnings dashboard for homeowners
-- Clear ToS disclosing affiliate relationship
-
 ---
 
 ## ⚠️ Important Notes for Claude
 
-- Owner is on Mac, no local terminal
-- Use GitHub web UI to create/edit files — always use Add File → Create New File (pencil edit icon corrupts files)
+- Owner is on Mac, no local terminal experience
+- Use GitHub web UI to create/edit files — always use Add File → Create New File
 - All files committed directly to main branch
 - Vercel Pro auto-deploys every commit to main
-- Always use window.location.href for redirects — never useRouter
+- Always use window.location.href for redirects in client components — never useRouter
 - All monetary values stored in cents in database
 - User roles: 'homeowner' | 'pro' | 'admin'
 - Subscription tiers: 'free' | 'premium' | 'pro_studio'
-
-## 🔧 Auth Architecture
-- `src/lib/supabase/client.ts` — createBrowserClient for client components
-- `src/lib/supabase/server.ts` — createServerClient with cookies for server components
-- `src/lib/supabase/proxy.ts` — session refresh logic called by middleware
-- `src/middleware.ts` — calls updateSession from proxy on every request
-- `src/app/auth/callback/route.ts` — exchanges OAuth code for session, redirects to /dashboard
-- Google OAuth redirect URI in Google Cloud Console: https://emwwijbfyqjtmwkmwgnt.supabase.co/auth/v1/callback
-- Supabase redirect URLs: https://homagio-app.vercel.app/** and https://homagio-app.vercel.app/auth/callback
-- Supabase Site URL: https://homagio-app.vercel.app
-- Email confirmation: OFF in Supabase
+- proxy.ts has been DELETED — do not recreate it
+- All page-level auth is handled by middleware + server components
 
 ## 📧 Email Architecture
 - Provider: Resend (free tier)
 - From address: onboarding@resend.dev (until custom domain set up)
 - Welcome email fires on signup via /api/send-welcome route
-- Future: swap to hello@homagio.com once domain purchased
 
 ---
 
@@ -242,5 +264,5 @@ Every "Shop This Material" link routes through Homagio's affiliate links.
 
 ---
 
-*Last updated: Session 4 — Auth fully rebuilt with @supabase/ssr proxy architecture, Resend welcome email working, dashboard welcome screen built, all core flows updated*
-*Next session: Design polish pass OR Stripe subscriptions*
+*Last updated: Session 5 — Auth completely rebuilt with server components + middleware. Photo upload working for homes, rooms, and materials via Cloudinary. Material detail page, edit material flow, and delete material all working.*
+*Next session: AI material detection OR Stripe subscriptions*
