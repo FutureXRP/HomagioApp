@@ -30,9 +30,7 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
     script.onload = () => {
       const mapboxgl = (window as any).mapboxgl
       if (!mapboxgl) { setMapError(true); return }
-
       mapboxgl.accessToken = MAPBOX_TOKEN
-
       if (!mapContainer.current) return
 
       const map = new mapboxgl.Map({
@@ -48,65 +46,34 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
         setMapLoaded(true)
         mapRef.current = map
 
-        homesWithCoords.forEach(home => {
-          const el = document.createElement('div')
-          el.style.cssText = `
-            width: 40px; height: 40px; border-radius: 50%;
-            background: #006aff; border: 3px solid #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            cursor: pointer; display: flex; align-items: center;
-            justify-content: center; font-size: 18px;
-            transition: transform 0.15s;
-          `
-          el.innerHTML = '🏠'
-          el.onmouseenter = () => el.style.transform = 'scale(1.2)'
-          el.onmouseleave = () => el.style.transform = 'scale(1)'
-          el.addEventListener('click', () => {
-            setSelectedHome(home)
+        const pinsToAdd = homesWithCoords.length > 0
+          ? homesWithCoords
+          : homes.length > 0 ? [{ ...homes[0], lat: DEFAULT_CENTER[1], lng: DEFAULT_CENTER[0] }] : []
+
+        pinsToAdd.forEach(home => {
+          // Use default Mapbox marker — no custom HTML, no anchor issues
+          const marker = new mapboxgl.Marker({ color: '#006aff' })
+            .setLngLat([home.lng, home.lat])
+            .addTo(map)
+
+          marker.getElement().addEventListener('click', () => {
+            // Find the real home (not the fallback with default coords)
+            const realHome = homes.find(h => h.id === home.id) || homes[0]
+            setSelectedHome(realHome)
             setSidebarOpen(true)
             map.flyTo({ center: [home.lng, home.lat], zoom: 14, duration: 800 })
           })
-
-          // anchor: 'center' fixes the jumping pin bug
-          new mapboxgl.Marker({ element: el, anchor: 'center' })
-            .setLngLat([home.lng, home.lat])
-            .addTo(map)
         })
-
-        if (homesWithCoords.length === 0 && homes.length > 0) {
-          const el = document.createElement('div')
-          el.style.cssText = `
-            width: 40px; height: 40px; border-radius: 50%;
-            background: #006aff; border: 3px solid #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            cursor: pointer; display: flex; align-items: center;
-            justify-content: center; font-size: 18px;
-          `
-          el.innerHTML = '🏠'
-          el.addEventListener('click', () => {
-            setSelectedHome(homes[0])
-            setSidebarOpen(true)
-          })
-          new mapboxgl.Marker({ element: el, anchor: 'center' })
-            .setLngLat(DEFAULT_CENTER)
-            .addTo(map)
-        }
       })
 
-      map.on('error', (e: any) => {
-        console.error('Mapbox error:', e)
-        setMapError(true)
-      })
+      map.on('error', () => setMapError(true))
     }
 
     script.onerror = () => setMapError(true)
     document.head.appendChild(script)
 
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove()
-        mapRef.current = null
-      }
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
     }
   }, [])
 
@@ -123,18 +90,13 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
       <style>{`
         * { box-sizing: border-box; }
         body { font-family: system-ui, sans-serif; margin: 0; }
-        .home-list-item {
-          display: flex; gap: 12px; padding: 14px 16px;
-          border-bottom: 1px solid #f3f4f6; cursor: pointer;
-          transition: background 0.12s;
-        }
+        .home-list-item { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background 0.12s; }
         .home-list-item:hover { background: #f7f9fc; }
         .home-list-item.active { background: #f0f6ff; border-left: 3px solid #006aff; }
         @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
       `}</style>
 
       <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif'}}>
-
         <nav style={{background: '#fff', borderBottom: '1px solid #e9edf2', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 200, flexShrink: 0}}>
           <a href="/" style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px', textDecoration: 'none'}}>
             hom<span style={{color: '#1a1a2e'}}>agio</span>
@@ -147,15 +109,11 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
         </nav>
 
         <div style={{display: 'flex', flex: 1, height: 'calc(100vh - 64px)', overflow: 'hidden'}}>
-
           <div style={{width: '360px', flexShrink: 0, background: '#fff', borderRight: '1px solid #e9edf2', overflowY: 'auto', display: 'flex', flexDirection: 'column'}}>
             <div style={{padding: '16px', borderBottom: '1px solid #f3f4f6'}}>
-              <div style={{fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '2px'}}>
-                {homes.length} Public Home{homes.length !== 1 ? 's' : ''}
-              </div>
+              <div style={{fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '2px'}}>{homes.length} Public Home{homes.length !== 1 ? 's' : ''}</div>
               <div style={{fontSize: '12px', color: '#9ca3af'}}>Click a home to view on map</div>
             </div>
-
             {homes.length === 0 ? (
               <div style={{padding: '48px 24px', textAlign: 'center'}}>
                 <div style={{fontSize: '36px', marginBottom: '12px'}}>🏠</div>
@@ -164,20 +122,12 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
               </div>
             ) : (
               homes.map(home => (
-                <div
-                  key={home.id}
-                  className={`home-list-item ${selectedHome?.id === home.id ? 'active' : ''}`}
-                  onClick={() => handleHomeClick(home)}
-                >
+                <div key={home.id} className={`home-list-item ${selectedHome?.id === home.id ? 'active' : ''}`} onClick={() => handleHomeClick(home)}>
                   <div style={{width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#f0f6ff', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                    {home.photo_url
-                      ? <img src={home.photo_url} alt={home.name || home.address} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-                      : <span style={{fontSize: '28px'}}>🏠</span>}
+                    {home.photo_url ? <img src={home.photo_url} alt={home.name || home.address} style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : <span style={{fontSize: '28px'}}>🏠</span>}
                   </div>
                   <div style={{flex: 1, minWidth: 0}}>
-                    <div style={{fontSize: '14px', fontWeight: 700, color: '#1a1a2e', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                      {home.name || home.address}
-                    </div>
+                    <div style={{fontSize: '14px', fontWeight: 700, color: '#1a1a2e', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{home.name || home.address}</div>
                     <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '4px'}}>{home.city}, {home.state}</div>
                     <div style={{display: 'flex', gap: '8px'}}>
                       {home.bedrooms && <span style={{fontSize: '11px', color: '#9ca3af'}}>🛏️ {home.bedrooms}</span>}
@@ -210,14 +160,9 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
 
             {sidebarOpen && selectedHome && (
               <div style={{position: 'absolute', top: '16px', right: '16px', width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden', zIndex: 100}}>
-                <button onClick={() => setSidebarOpen(false)}
-                  style={{position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: '28px', height: '28px', fontSize: '16px', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit'}}>
-                  ×
-                </button>
+                <button onClick={() => setSidebarOpen(false)} style={{position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: '28px', height: '28px', fontSize: '16px', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit'}}>×</button>
                 <div style={{height: '180px', background: '#0D1B2A', overflow: 'hidden'}}>
-                  {selectedHome.photo_url
-                    ? <img src={selectedHome.photo_url} alt={selectedHome.name} style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}} />
-                    : <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', opacity: 0.4}}>🏠</div>}
+                  {selectedHome.photo_url ? <img src={selectedHome.photo_url} alt={selectedHome.name} style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}} /> : <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', opacity: 0.4}}>🏠</div>}
                 </div>
                 <div style={{padding: '16px'}}>
                   <div style={{fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px'}}>{selectedHome.name || selectedHome.address}</div>
@@ -229,17 +174,10 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
                     {selectedHome.square_feet && <span style={{fontSize: '12px', color: '#374151', background: '#f3f4f6', padding: '4px 8px', borderRadius: '6px'}}>📐 {selectedHome.square_feet.toLocaleString()} sqft</span>}
                     {selectedHome.year_built && <span style={{fontSize: '12px', color: '#374151', background: '#f3f4f6', padding: '4px 8px', borderRadius: '6px'}}>📅 {selectedHome.year_built}</span>}
                   </div>
-                  <a href={`/explore/${selectedHome.id}`}
-                    style={{display: 'block', background: '#006aff', color: '#fff', padding: '11px', borderRadius: '9px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', textAlign: 'center'}}>
+                  <a href={`/explore/${selectedHome.id}`} style={{display: 'block', background: '#006aff', color: '#fff', padding: '11px', borderRadius: '9px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', textAlign: 'center'}}>
                     View Full Home Profile →
                   </a>
                 </div>
-              </div>
-            )}
-
-            {homesWithCoords.length === 0 && homes.length > 0 && mapLoaded && (
-              <div style={{position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '10px 18px', borderRadius: '20px', fontSize: '13px', whiteSpace: 'nowrap', backdropFilter: 'blur(6px)'}}>
-                📍 Add lat/lng to your home in Supabase to pin it on the map
               </div>
             )}
           </div>
