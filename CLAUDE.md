@@ -28,7 +28,7 @@ Two user types:
 - Style: Zillow-inspired (clean, white, minimal, trustworthy)
 - Primary color: #006aff (Zillow blue)
 - Typography: System sans-serif, clean hierarchy
-- Brand name: homagio (lowercase logo, blue accent on "hom")
+- Brand name: homagio (lowercase logo, blue "hom" accent)
 - Flagship product term: "Homagio Estimate™" (like Zillow's Zestimate)
 - NOTE: Full design polish pass planned after all core flows are built
 
@@ -43,8 +43,8 @@ Two user types:
 | Auth           | Supabase Auth (email + Google OAuth)    |
 | Email          | Resend (welcome email working)          |
 | Image Storage  | Cloudinary (✅ working)                 |
+| Maps           | Mapbox GL JS v3.3.0 (✅ working)        |
 | AI Detection   | OpenAI Vision API (not yet set up)      |
-| Maps           | Mapbox GL (not yet set up)              |
 | Payments       | Stripe + Stripe Connect (not yet set up)|
 | Affiliate Mgmt | Skimlinks or custom (not yet set up)    |
 | Deploy (web)   | Vercel Pro                              |
@@ -58,12 +58,23 @@ Two user types:
 - NEXT_PUBLIC_SUPABASE_ANON_KEY
 - SUPABASE_SECRET_KEY
 - RESEND_API_KEY
+- NEXT_PUBLIC_MAPBOX_TOKEN
 
 ## ☁️ Cloudinary
 - Cloud Name: dlb0guicc
 - Upload Preset: HomagioApp (unsigned)
 - Folders: homagio/homes, homagio/rooms, homagio/materials
 - Upload goes directly from browser to Cloudinary (no server needed)
+
+## 🗺️ Mapbox
+- Token: stored in NEXT_PUBLIC_MAPBOX_TOKEN in Vercel
+- Also hardcoded in ExploreClient.tsx (public pk. token — safe to commit)
+- Token name in Mapbox dashboard: "Homagio App"
+- Allowed URL: https://homagio-app.vercel.app
+- Default map center: Tulsa, OK [-95.9928, 36.1540]
+- Use default Mapbox marker (NOT custom HTML elements) to avoid pin jumping bug
+- Homes need lat/lng in Supabase to show as pins
+- The Blair House: lat=36.0868, lng=-96.0639
 
 ---
 
@@ -88,43 +99,49 @@ Two user types:
 HomagioApp/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx                                      ✅ landing page
+│   │   ├── page.tsx                                      ✅ landing page (server, fault-tolerant fetch)
 │   │   ├── globals.css                                   ✅
 │   │   ├── layout.tsx                                    ✅
+│   │   ├── about/page.tsx                                ✅ About Us page
+│   │   ├── faq/page.tsx                                  ✅ FAQ page (accordion)
+│   │   ├── contact/page.tsx                              ✅ Contact page (form UI, no email yet)
+│   │   ├── explore/
+│   │   │   ├── page.tsx                                  ✅ server component
+│   │   │   ├── ExploreClient.tsx                         ✅ Mapbox map + sidebar panel
+│   │   │   └── [homeId]/
+│   │   │       ├── page.tsx                              ✅ server component
+│   │   │       └── PublicHomeClient.tsx                  ✅ expandable rooms + materials
 │   │   ├── (auth)/
 │   │   │   ├── login/page.tsx                            ✅ working
 │   │   │   └── signup/page.tsx                           ✅ working
 │   │   ├── dashboard/
 │   │   │   ├── page.tsx                                  ✅ server component
-│   │   │   ├── DashboardClient.tsx                       ✅ client UI
+│   │   │   ├── DashboardClient.tsx                       ✅ Explore link active
 │   │   │   └── homes/
 │   │   │       ├── page.tsx                              ✅ server component
 │   │   │       └── HomesDashboardClient.tsx              ✅ client UI
 │   │   ├── homes/
-│   │   │   ├── add/page.tsx                              ✅ working + exterior auto-create
+│   │   │   ├── add/page.tsx                              ✅ with Exterior auto-create
 │   │   │   └── [id]/
 │   │   │       ├── page.tsx                              ✅ server component
-│   │   │       ├── HomeDetailClient.tsx                  ✅ with home photo upload
+│   │   │       ├── HomeDetailClient.tsx                  ✅ photo upload + public toggle
 │   │   │       └── rooms/
 │   │   │           ├── add/page.tsx                      ✅ working
 │   │   │           └── [roomId]/
 │   │   │               ├── page.tsx                      ✅ server component
-│   │   │               ├── RoomDetailClient.tsx          ✅ with room photo upload
+│   │   │               ├── RoomDetailClient.tsx          ✅ room photo upload
 │   │   │               └── materials/
-│   │   │                   ├── add/page.tsx              ✅ working + photo upload
+│   │   │                   ├── add/page.tsx              ✅ with photo upload
 │   │   │                   └── [materialId]/
 │   │   │                       ├── page.tsx              ✅ server component
 │   │   │                       ├── MaterialDetailClient.tsx ✅ with edit button
 │   │   │                       └── edit/
 │   │   │                           ├── page.tsx          ✅ server component
-│   │   │                           └── EditMaterialClient.tsx ✅ with delete
-│   │   ├── loading/
-│   │   │   └── page.tsx                                  ✅ redirects to /dashboard
-│   │   ├── api/
-│   │   │   └── send-welcome/route.ts                     ✅ welcome email via Resend
-│   │   └── auth/
-│   │       └── callback/route.ts                         ✅ OAuth code exchange
-│   ├── middleware.ts                                      ✅ protects /dashboard + /homes routes
+│   │   │                           └── EditMaterialClient.tsx ✅ edit + delete
+│   │   ├── loading/page.tsx                              ✅ redirects to /dashboard
+│   │   ├── api/send-welcome/route.ts                     ✅ welcome email via Resend
+│   │   └── auth/callback/route.ts                        ✅ OAuth code exchange
+│   ├── middleware.ts                                      ✅ protects /dashboard + /homes
 │   └── lib/
 │       └── supabase/
 │           ├── client.ts                                 ✅ browser client
@@ -132,8 +149,6 @@ HomagioApp/
 ├── vercel.json                                           ✅
 ├── next.config.js                                        ✅
 ├── tailwind.config.ts                                    ✅
-├── tsconfig.json                                         ✅
-├── postcss.config.js                                     ✅
 └── package.json                                          ✅
 ```
 
@@ -141,118 +156,86 @@ HomagioApp/
 
 ## 🔧 Auth Architecture (CRITICAL — hard-won fix)
 
-The auth was completely rebuilt in Session 5 to fix race conditions.
-
 **Key principles:**
 - All protected pages are **server components** that call `supabase.auth.getUser()` server-side
-- Middleware at `src/middleware.ts` protects `/dashboard` and `/homes` routes — redirects to `/login` if no session
-- Client components handle UI only — no auth checks in client components
-- `proxy.ts` was deleted — middleware handles everything directly
-- Login redirects straight to `/dashboard` after `data.session` is confirmed
-- No `/loading` intermediate page needed (it just redirects to `/dashboard` now)
-- Never use `getSession()` for auth checks — always use `getUser()`
+- Middleware protects `/dashboard` and `/homes` routes
+- Public routes bypass ALL Supabase processing in middleware (no getUser, no cookie touching)
+- Client components handle UI only — no auth checks
+- Login redirects straight to `/dashboard` after `data.session` confirmed
+- proxy.ts has been DELETED — do not recreate it
+
+**Public routes (middleware bypasses entirely):**
+`/`, `/explore`, `/about`, `/faq`, `/contact`, `/auth`, `/api`, `/loading`
+
+**Protected routes (redirect to /login if no session):**
+`/dashboard`, `/homes`
 
 **Page pattern:**
 ```
-page.tsx (server) → checks auth with getUser() → fetches data → passes to XxxClient.tsx (client UI)
+page.tsx (server) → getUser() → fetch data → pass to XxxClient.tsx (client UI)
 ```
+
+**Known issue:** Clicking the homagio logo from dashboard to `/` sometimes logs the user out. Deferred to Bolt.new for debugging with live environment access.
 
 ---
 
 ## 🏗️ Build Phases
 
-### ✅ Phase 0 — Complete
-- [x] Product vision, feature spec, design language, tech stack
+### ✅ Complete
+- Phase 0 — Product vision
+- Phase 1a — Foundation (GitHub, Next.js, Vercel)
+- Phase 1b — Auth (Supabase SSR, email + Google OAuth)
+- Phase 1c — Core flows (homes, rooms, materials)
+- Phase 2a — Photo upload (Cloudinary for homes, rooms, materials)
+- Phase 2b — Material detail, edit, delete
+- Phase 3a — Explore (Mapbox map, public home profiles, expandable rooms/materials)
+- Phase 3b — Landing page nav (Catalogue, Explore, FAQs, About Us, Contact)
+- Phase 3c — Public pages (FAQ accordion, About story, Contact form UI)
 
-### ✅ Phase 1a — Foundation Complete
-- [x] GitHub repo, Next.js 14, Vercel Pro, live site
-
-### ✅ Phase 1b — Auth Complete
-- [x] Supabase + @supabase/ssr (server component architecture)
-- [x] Email/password login working (single login, no race conditions)
-- [x] Google OAuth working
-- [x] Middleware protecting /dashboard and /homes routes
-- [x] Welcome email via Resend on signup
-
-### ✅ Phase 1c — Core Flows Complete
-- [x] Add Home flow (with Exterior room auto-created)
-- [x] Individual home page with photo upload
-- [x] Add Room flow
-- [x] Room detail page with photo upload
-- [x] Add Material flow with photo upload
-- [x] Material detail page
-- [x] Edit Material flow (edit + delete)
-- [x] Dashboard welcome screen
-- [x] My Homes page
-
-### ✅ Phase 2a — Photo Upload Complete
-- [x] Cloudinary integration (unsigned upload preset)
-- [x] Home exterior photo upload
-- [x] Room hero photo upload (saves to rooms.photo_url)
-- [x] Material photo upload (saves to materials.photo_url)
-- [x] Photos display as thumbnails in material lists
-- [x] Room cards show photo thumbnails when available
-- [x] Photo count tracked in stats
-
-### 📋 Phase 2b — Next
-- [ ] AI material detection (OpenAI Vision API)
+### 📋 Next Up
+- [ ] Wire contact form to actually send email via Resend
+- [ ] Public room pages `/explore/[homeId]/rooms/[roomId]`
+- [ ] Public material pages `/explore/[homeId]/rooms/[roomId]/materials/[materialId]`
+- [ ] Geocoding — auto-convert home addresses to lat/lng for map pins
 - [ ] Budget tracker + ROI calculator
-- [ ] Shopping list generator + PDF export
 - [ ] Homagio Estimate™
+- [ ] AI material detection (OpenAI Vision)
+- [ ] Stripe subscriptions (Free/Premium/Pro)
+- [ ] Pro Studio
+- [ ] Mobile polish pass
+- [ ] React Native app
 
-### 📋 Phase 3 — Stripe Subscriptions
-- [ ] Free/Premium/Pro tiers
-- [ ] Stripe Connect for affiliate payouts
-
-### 📋 Phase 4 — Explore + Discovery
-- [ ] Mapbox map integration
-- [ ] Public home profiles
-- [ ] Browse + filter nearby homes
-- [ ] Homagio Affiliate Revenue System
-
-### 📋 Phase 5 — Pro Studio
-- [ ] Pro user dashboard
-- [ ] Client management
-- [ ] PDF spec sheet exports
-
-### 📋 Phase 6 — Retention + Growth
-- [ ] Email notifications (Resend)
-- [ ] Home timeline
-- [ ] Maintenance reminders
-- [ ] Mobile polish pass (all pages)
-- [ ] React Native mobile app
+### 📋 Known Issues to Fix with Bolt.new
+- Clicking homagio logo from dashboard sometimes logs user out
+- Navigation from landing page while logged in behaves inconsistently
 
 ---
 
-## 💰 Affiliate Revenue Model (build in Phase 4)
+## 💰 Affiliate Revenue Model (build later)
 
-Homagio operates a single master affiliate account across all retailers.
+Homagio operates a single master affiliate account.
 Every "Shop This Material" link routes through Homagio's affiliate links.
 
 **Commission split options:**
 - Option A: 80% homeowner / 20% Homagio
 - Option B: 60% homeowner / 40% Homagio
-- Option C: Tiered by subscription — Free: 70/30, Premium: 80/20, Pro: 85/15
+- Option C: Tiered — Free: 70/30, Premium: 80/20, Pro: 85/15
 
 ---
 
 ## ⚠️ Important Notes for Claude
 
-- Owner is on Mac, no local terminal experience
-- Use GitHub web UI to create/edit files — always use Add File → Create New File
+- Owner is on Mac, no local terminal
+- Use GitHub web UI — Add File → Create New File (never pencil edit for new files)
 - All files committed directly to main branch
 - Vercel Pro auto-deploys every commit to main
-- Always use window.location.href for redirects in client components — never useRouter
+- Always use `window.location.href` for redirects in client components
 - All monetary values stored in cents in database
 - User roles: 'homeowner' | 'pro' | 'admin'
 - Subscription tiers: 'free' | 'premium' | 'pro_studio'
-- proxy.ts has been DELETED — do not recreate it
-- All page-level auth is handled by middleware + server components
-
-## 📧 Email Architecture
-- Provider: Resend (free tier)
-- From address: onboarding@resend.dev (until custom domain set up)
-- Welcome email fires on signup via /api/send-welcome route
+- **Never use custom HTML elements for Mapbox markers** — use default marker with `color:` option
+- **Landing page uses direct REST fetch, NOT createClient()** — prevents session interference
+- **Contact form is UI only** — doesn't send email yet, shows success state
 
 ---
 
@@ -264,5 +247,6 @@ Every "Shop This Material" link routes through Homagio's affiliate links.
 
 ---
 
-*Last updated: Session 5 — Auth completely rebuilt with server components + middleware. Photo upload working for homes, rooms, and materials via Cloudinary. Material detail page, edit material flow, and delete material all working.*
-*Next session: AI material detection OR Stripe subscriptions*
+*Last updated: Session 6 — Explore page with Mapbox map built and working. Public home profiles with expandable rooms and materials. Landing page nav overhauled (Catalogue, Explore, FAQs, About Us, Contact). FAQ, About, and Contact pages built. Featured homes on landing page link to public profiles. All explore links wired throughout app.*
+
+*Next session: Wire contact form email, public room/material pages, geocoding for map pins, or budget tracker.*
