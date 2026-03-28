@@ -25,9 +25,16 @@ export default function MaterialDetailClient({ material, homeId, roomId }: {
           <a href="/dashboard" style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px', textDecoration: 'none'}}>
             hom<span style={{color: '#1a1a2e'}}>agio</span>
           </a>
-          <a href={`/homes/${homeId}/rooms/${roomId}`} style={{fontSize: '13px', color: '#6b7280', textDecoration: 'none', fontWeight: 500}}>
-            ← Back to Room
-          </a>
+          <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+            <a href={`/homes/${homeId}/rooms/${roomId}`} style={{fontSize: '13px', color: '#6b7280', textDecoration: 'none', fontWeight: 500}}>
+              ← Back to Room
+            </a>
+            <button
+              onClick={() => window.location.href = `/homes/${homeId}/rooms/${roomId}/materials/${material.id}/edit`}
+              style={{background: '#f7f9fc', color: '#374151', border: '1.5px solid #e9edf2', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
+              ✏️ Edit
+            </button>
+          </div>
         </nav>
 
         <div style={{maxWidth: '720px', margin: '0 auto', padding: '40px 32px'}}>
