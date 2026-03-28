@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-// Public token — safe to commit, same pattern as Cloudinary credentials
 const MAPBOX_TOKEN = 'pk.eyJ1IjoidGhlNWJsYWlycyIsImEiOiJjbW5hdmpheXAwbmZsMnFxMWo2bjBpcjdmIn0.Px8zSq6gn-Z3geHSYRB9LA'
 const DEFAULT_CENTER: [number, number] = [-95.9928, 36.1540]
 const DEFAULT_ZOOM = 11
@@ -49,15 +48,14 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
         setMapLoaded(true)
         mapRef.current = map
 
-        // Add pins for homes with coordinates
         homesWithCoords.forEach(home => {
           const el = document.createElement('div')
           el.style.cssText = `
-            width: 36px; height: 36px; border-radius: 50%;
+            width: 40px; height: 40px; border-radius: 50%;
             background: #006aff; border: 3px solid #fff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             cursor: pointer; display: flex; align-items: center;
-            justify-content: center; font-size: 16px;
+            justify-content: center; font-size: 18px;
             transition: transform 0.15s;
           `
           el.innerHTML = '🏠'
@@ -68,27 +66,28 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
             setSidebarOpen(true)
             map.flyTo({ center: [home.lng, home.lat], zoom: 14, duration: 800 })
           })
-          new mapboxgl.Marker({ element: el })
+
+          // anchor: 'center' fixes the jumping pin bug
+          new mapboxgl.Marker({ element: el, anchor: 'center' })
             .setLngLat([home.lng, home.lat])
             .addTo(map)
         })
 
-        // Default pin if no coords but homes exist
         if (homesWithCoords.length === 0 && homes.length > 0) {
           const el = document.createElement('div')
           el.style.cssText = `
-            width: 36px; height: 36px; border-radius: 50%;
+            width: 40px; height: 40px; border-radius: 50%;
             background: #006aff; border: 3px solid #fff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             cursor: pointer; display: flex; align-items: center;
-            justify-content: center; font-size: 16px;
+            justify-content: center; font-size: 18px;
           `
           el.innerHTML = '🏠'
           el.addEventListener('click', () => {
             setSelectedHome(homes[0])
             setSidebarOpen(true)
           })
-          new mapboxgl.Marker({ element: el })
+          new mapboxgl.Marker({ element: el, anchor: 'center' })
             .setLngLat(DEFAULT_CENTER)
             .addTo(map)
         }
@@ -149,7 +148,6 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
 
         <div style={{display: 'flex', flex: 1, height: 'calc(100vh - 64px)', overflow: 'hidden'}}>
 
-          {/* Left panel */}
           <div style={{width: '360px', flexShrink: 0, background: '#fff', borderRight: '1px solid #e9edf2', overflowY: 'auto', display: 'flex', flexDirection: 'column'}}>
             <div style={{padding: '16px', borderBottom: '1px solid #f3f4f6'}}>
               <div style={{fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '2px'}}>
@@ -192,7 +190,6 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
             )}
           </div>
 
-          {/* Map */}
           <div style={{flex: 1, position: 'relative'}}>
             <div ref={mapContainer} style={{width: '100%', height: '100%'}} />
 
@@ -207,13 +204,10 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
               <div style={{position: 'absolute', inset: 0, background: '#f7f9fc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px', textAlign: 'center'}}>
                 <div style={{fontSize: '36px'}}>🗺️</div>
                 <div style={{fontSize: '16px', fontWeight: 700, color: '#1a1a2e'}}>Map unavailable</div>
-                <div style={{fontSize: '13px', color: '#6b7280', maxWidth: '320px'}}>
-                  Unable to load the map. Please try refreshing the page.
-                </div>
+                <div style={{fontSize: '13px', color: '#6b7280', maxWidth: '320px'}}>Unable to load the map. Please try refreshing.</div>
               </div>
             )}
 
-            {/* Sidebar panel */}
             {sidebarOpen && selectedHome && (
               <div style={{position: 'absolute', top: '16px', right: '16px', width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden', zIndex: 100}}>
                 <button onClick={() => setSidebarOpen(false)}
