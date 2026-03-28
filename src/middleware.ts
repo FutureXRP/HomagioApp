@@ -28,23 +28,32 @@ export async function middleware(request: NextRequest) {
   // Refresh session — must be called before any redirects
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect /dashboard and /homes routes
-  const isProtected =
-    request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/homes')
+  const path = request.nextUrl.pathname
 
-  if (isProtected && !user) {
+  // Public routes — never redirect these regardless of auth state
+  const isPublicRoute =
+    path === '/' ||
+    path.startsWith('/login') ||
+    path.startsWith('/signup') ||
+    path.startsWith('/auth') ||
+    path.startsWith('/loading') ||
+    path.startsWith('/api')
+
+  // Protected routes — require authentication
+  const isProtectedRoute =
+    path.startsWith('/dashboard') ||
+    path.startsWith('/homes')
+
+  // Redirect unauthenticated users away from protected routes
+  if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Redirect logged-in users away from login/signup
-  const isAuthPage =
-    request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/signup')
-
-  if (isAuthPage && user) {
+  // Redirect logged-in users away from login/signup only
+  // (NOT from landing page — logged-in users can still visit /)
+  if ((path.startsWith('/login') || path.startsWith('/signup')) && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
