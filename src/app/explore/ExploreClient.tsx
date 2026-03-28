@@ -2,22 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+// Public token — safe to commit, same pattern as Cloudinary credentials
+const MAPBOX_TOKEN = 'pk.eyJ1IjoidGhlNWJsYWlycyIsImEiOiJjbW5hdmpheXAwbmZsMnFxMWo2bjBpcjdmIn0.Px8zSq6gn-Z3geHSYRB9LA'
 const DEFAULT_CENTER: [number, number] = [-95.9928, 36.1540]
 const DEFAULT_ZOOM = 11
 
-export default function ExploreClient({ homes, mapboxToken }: {
-  homes: any[]
-  mapboxToken: string
-}) {
+export default function ExploreClient({ homes }: { homes: any[] }) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
-  const markersRef = useRef<any[]>([])
   const [selectedHome, setSelectedHome] = useState<any>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [mapError, setMapError] = useState(false)
 
   const homesWithCoords = homes.filter(h => h.lat && h.lng)
-  const allHomes = homes
 
   useEffect(() => {
     if (mapRef.current) return
@@ -29,10 +27,12 @@ export default function ExploreClient({ homes, mapboxToken }: {
 
     const script = document.createElement('script')
     script.src = 'https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'
+
     script.onload = () => {
       const mapboxgl = (window as any).mapboxgl
-      // Token passed from server via env var — never hardcoded in client
-      mapboxgl.accessToken = mapboxToken
+      if (!mapboxgl) { setMapError(true); return }
+
+      mapboxgl.accessToken = MAPBOX_TOKEN
 
       if (!mapContainer.current) return
 
@@ -49,6 +49,7 @@ export default function ExploreClient({ homes, mapboxToken }: {
         setMapLoaded(true)
         mapRef.current = map
 
+        // Add pins for homes with coordinates
         homesWithCoords.forEach(home => {
           const el = document.createElement('div')
           el.style.cssText = `
@@ -62,21 +63,18 @@ export default function ExploreClient({ homes, mapboxToken }: {
           el.innerHTML = '🏠'
           el.onmouseenter = () => el.style.transform = 'scale(1.2)'
           el.onmouseleave = () => el.style.transform = 'scale(1)'
-
-          const marker = new mapboxgl.Marker({ element: el })
-            .setLngLat([home.lng, home.lat])
-            .addTo(map)
-
           el.addEventListener('click', () => {
             setSelectedHome(home)
             setSidebarOpen(true)
             map.flyTo({ center: [home.lng, home.lat], zoom: 14, duration: 800 })
           })
-
-          markersRef.current.push(marker)
+          new mapboxgl.Marker({ element: el })
+            .setLngLat([home.lng, home.lat])
+            .addTo(map)
         })
 
-        if (homesWithCoords.length === 0 && allHomes.length > 0) {
+        // Default pin if no coords but homes exist
+        if (homesWithCoords.length === 0 && homes.length > 0) {
           const el = document.createElement('div')
           el.style.cssText = `
             width: 36px; height: 36px; border-radius: 50%;
@@ -87,7 +85,7 @@ export default function ExploreClient({ homes, mapboxToken }: {
           `
           el.innerHTML = '🏠'
           el.addEventListener('click', () => {
-            setSelectedHome(allHomes[0])
+            setSelectedHome(homes[0])
             setSidebarOpen(true)
           })
           new mapboxgl.Marker({ element: el })
@@ -95,7 +93,14 @@ export default function ExploreClient({ homes, mapboxToken }: {
             .addTo(map)
         }
       })
+
+      map.on('error', (e: any) => {
+        console.error('Mapbox error:', e)
+        setMapError(true)
+      })
     }
+
+    script.onerror = () => setMapError(true)
     document.head.appendChild(script)
 
     return () => {
@@ -126,17 +131,18 @@ export default function ExploreClient({ homes, mapboxToken }: {
         }
         .home-list-item:hover { background: #f7f9fc; }
         .home-list-item.active { background: #f0f6ff; border-left: 3px solid #006aff; }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
       `}</style>
 
       <div style={{minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif'}}>
 
         <nav style={{background: '#fff', borderBottom: '1px solid #e9edf2', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 200, flexShrink: 0}}>
-          <a href="/dashboard" style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px', textDecoration: 'none'}}>
+          <a href="/" style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px', textDecoration: 'none'}}>
             hom<span style={{color: '#1a1a2e'}}>agio</span>
           </a>
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             <span style={{fontSize: '14px', fontWeight: 600, color: '#1a1a2e'}}>Explore</span>
-            <span style={{fontSize: '13px', color: '#9ca3af'}}>· {allHomes.length} home{allHomes.length !== 1 ? 's' : ''} on Homagio</span>
+            <span style={{fontSize: '13px', color: '#9ca3af'}}>· {homes.length} home{homes.length !== 1 ? 's' : ''} on Homagio</span>
           </div>
           <a href="/dashboard" style={{fontSize: '13px', color: '#6b7280', textDecoration: 'none', fontWeight: 500}}>← Dashboard</a>
         </nav>
@@ -147,19 +153,19 @@ export default function ExploreClient({ homes, mapboxToken }: {
           <div style={{width: '360px', flexShrink: 0, background: '#fff', borderRight: '1px solid #e9edf2', overflowY: 'auto', display: 'flex', flexDirection: 'column'}}>
             <div style={{padding: '16px', borderBottom: '1px solid #f3f4f6'}}>
               <div style={{fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '2px'}}>
-                {allHomes.length} Public Home{allHomes.length !== 1 ? 's' : ''}
+                {homes.length} Public Home{homes.length !== 1 ? 's' : ''}
               </div>
               <div style={{fontSize: '12px', color: '#9ca3af'}}>Click a home to view on map</div>
             </div>
 
-            {allHomes.length === 0 ? (
+            {homes.length === 0 ? (
               <div style={{padding: '48px 24px', textAlign: 'center'}}>
                 <div style={{fontSize: '36px', marginBottom: '12px'}}>🏠</div>
                 <div style={{fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px'}}>No public homes yet</div>
                 <div style={{fontSize: '13px', color: '#9ca3af'}}>Be the first to make your home public.</div>
               </div>
             ) : (
-              allHomes.map(home => (
+              homes.map(home => (
                 <div
                   key={home.id}
                   className={`home-list-item ${selectedHome?.id === home.id ? 'active' : ''}`}
@@ -174,9 +180,7 @@ export default function ExploreClient({ homes, mapboxToken }: {
                     <div style={{fontSize: '14px', fontWeight: 700, color: '#1a1a2e', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                       {home.name || home.address}
                     </div>
-                    <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '4px'}}>
-                      {home.city}, {home.state}
-                    </div>
+                    <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '4px'}}>{home.city}, {home.state}</div>
                     <div style={{display: 'flex', gap: '8px'}}>
                       {home.bedrooms && <span style={{fontSize: '11px', color: '#9ca3af'}}>🛏️ {home.bedrooms}</span>}
                       {home.bathrooms && <span style={{fontSize: '11px', color: '#9ca3af'}}>🛁 {home.bathrooms}</span>}
@@ -192,19 +196,27 @@ export default function ExploreClient({ homes, mapboxToken }: {
           <div style={{flex: 1, position: 'relative'}}>
             <div ref={mapContainer} style={{width: '100%', height: '100%'}} />
 
-            {!mapLoaded && (
+            {!mapLoaded && !mapError && (
               <div style={{position: 'absolute', inset: 0, background: '#f7f9fc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px'}}>
                 <div style={{width: '32px', height: '32px', border: '2.5px solid #e9edf2', borderTop: '2.5px solid #006aff', borderRadius: '50%', animation: 'spin 0.8s linear infinite'}} />
-                <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
                 <div style={{fontSize: '14px', color: '#6b7280'}}>Loading map...</div>
+              </div>
+            )}
+
+            {mapError && (
+              <div style={{position: 'absolute', inset: 0, background: '#f7f9fc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px', textAlign: 'center'}}>
+                <div style={{fontSize: '36px'}}>🗺️</div>
+                <div style={{fontSize: '16px', fontWeight: 700, color: '#1a1a2e'}}>Map unavailable</div>
+                <div style={{fontSize: '13px', color: '#6b7280', maxWidth: '320px'}}>
+                  Unable to load the map. Please try refreshing the page.
+                </div>
               </div>
             )}
 
             {/* Sidebar panel */}
             {sidebarOpen && selectedHome && (
               <div style={{position: 'absolute', top: '16px', right: '16px', width: '320px', background: '#fff', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', overflow: 'hidden', zIndex: 100}}>
-                <button
-                  onClick={() => setSidebarOpen(false)}
+                <button onClick={() => setSidebarOpen(false)}
                   style={{position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: 'none', borderRadius: '50%', width: '28px', height: '28px', fontSize: '16px', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit'}}>
                   ×
                 </button>
@@ -214,21 +226,9 @@ export default function ExploreClient({ homes, mapboxToken }: {
                     : <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', opacity: 0.4}}>🏠</div>}
                 </div>
                 <div style={{padding: '16px'}}>
-                  <div style={{fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px'}}>
-                    {selectedHome.name || selectedHome.address}
-                  </div>
-                  {selectedHome.name && (
-                    <div style={{fontSize: '12px', color: '#9ca3af', marginBottom: '2px'}}>{selectedHome.address}</div>
-                  )}
-                  <div style={{fontSize: '13px', color: '#6b7280', marginBottom: '12px'}}>
-                    {selectedHome.city}, {selectedHome.state} {selectedHome.zip}
-                  </div>
-                  {selectedHome.value_estimate && (
-                    <div style={{background: '#f0f6ff', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px'}}>
-                      <div style={{fontSize: '11px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px'}}>Homagio Estimate™</div>
-                      <div style={{fontSize: '20px', fontWeight: 700, color: '#006aff'}}>${Math.round(selectedHome.value_estimate / 100).toLocaleString()}</div>
-                    </div>
-                  )}
+                  <div style={{fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px'}}>{selectedHome.name || selectedHome.address}</div>
+                  {selectedHome.name && <div style={{fontSize: '12px', color: '#9ca3af', marginBottom: '2px'}}>{selectedHome.address}</div>}
+                  <div style={{fontSize: '13px', color: '#6b7280', marginBottom: '12px'}}>{selectedHome.city}, {selectedHome.state} {selectedHome.zip}</div>
                   <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px'}}>
                     {selectedHome.bedrooms && <span style={{fontSize: '12px', color: '#374151', background: '#f3f4f6', padding: '4px 8px', borderRadius: '6px'}}>🛏️ {selectedHome.bedrooms} beds</span>}
                     {selectedHome.bathrooms && <span style={{fontSize: '12px', color: '#374151', background: '#f3f4f6', padding: '4px 8px', borderRadius: '6px'}}>🛁 {selectedHome.bathrooms} baths</span>}
@@ -243,9 +243,9 @@ export default function ExploreClient({ homes, mapboxToken }: {
               </div>
             )}
 
-            {homesWithCoords.length === 0 && allHomes.length > 0 && (
+            {homesWithCoords.length === 0 && homes.length > 0 && mapLoaded && (
               <div style={{position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '10px 18px', borderRadius: '20px', fontSize: '13px', whiteSpace: 'nowrap', backdropFilter: 'blur(6px)'}}>
-                📍 Add lat/lng coordinates to your home in Supabase to pin it on the map
+                📍 Add lat/lng to your home in Supabase to pin it on the map
               </div>
             )}
           </div>
