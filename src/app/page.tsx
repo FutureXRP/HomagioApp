@@ -1,35 +1,45 @@
-import { createClient } from '@/lib/supabase/server'
-
 export const dynamic = 'force-dynamic'
 
+async function getPublicData() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+  const headers = {
+    'apikey': supabaseKey,
+    'Authorization': `Bearer ${supabaseKey}`,
+    'Content-Type': 'application/json',
+  }
+
+  // Fetch featured public homes with photos
+  const homesRes = await fetch(
+    `${supabaseUrl}/rest/v1/homes?is_public=eq.true&photo_url=not.is.null&select=id,name,address,city,state,zip,bedrooms,bathrooms,square_feet,year_built,photo_url,value_estimate&order=created_at.desc&limit=3`,
+    { headers, next: { revalidate: 0 } }
+  )
+  const featuredHomes = homesRes.ok ? await homesRes.json() : []
+
+  // Fetch counts
+  const [homesCountRes, roomsCountRes, materialsCountRes] = await Promise.all([
+    fetch(`${supabaseUrl}/rest/v1/homes?select=id`, { headers, next: { revalidate: 0 } }),
+    fetch(`${supabaseUrl}/rest/v1/rooms?select=id`, { headers, next: { revalidate: 0 } }),
+    fetch(`${supabaseUrl}/rest/v1/materials?select=id`, { headers, next: { revalidate: 0 } }),
+  ])
+
+  const [allHomes, allRooms, allMaterials] = await Promise.all([
+    homesCountRes.ok ? homesCountRes.json() : [],
+    roomsCountRes.ok ? roomsCountRes.json() : [],
+    materialsCountRes.ok ? materialsCountRes.json() : [],
+  ])
+
+  return {
+    featuredHomes,
+    homesCount: allHomes.length ?? 0,
+    roomsCount: allRooms.length ?? 0,
+    materialsCount: allMaterials.length ?? 0,
+  }
+}
+
 export default async function Home() {
-  const supabase = await createClient()
-
-  // Fetch public homes with at least a photo
-  const { data: featuredHomes } = await supabase
-    .from('homes')
-    .select(`
-      id, name, address, city, state, zip,
-      bedrooms, bathrooms, square_feet, year_built,
-      photo_url, value_estimate
-    `)
-    .eq('is_public', true)
-    .not('photo_url', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(3)
-
-  // Get real counts for social proof
-  const { count: homesCount } = await supabase
-    .from('homes')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: materialsCount } = await supabase
-    .from('materials')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: roomsCount } = await supabase
-    .from('rooms')
-    .select('*', { count: 'exact', head: true })
+  const { featuredHomes, homesCount, roomsCount, materialsCount } = await getPublicData()
 
   return (
     <main style={{fontFamily: '-apple-system, Helvetica Neue, Arial, sans-serif', background: '#fff', color: '#1a1a1a'}}>
@@ -94,31 +104,25 @@ export default async function Home() {
         ))}
       </div>
 
-      {/* Featured Homes — real data from Supabase */}
+      {/* Featured Homes */}
       <div style={{padding: '56px 32px', maxWidth: '1200px', margin: '0 auto'}}>
         <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '32px'}}>
           <div>
             <h2 style={{fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px'}}>
-              {featuredHomes && featuredHomes.length > 0
-                ? 'Featured homes on Homagio'
-                : 'Homes people are cataloging'}
+              {featuredHomes.length > 0 ? 'Featured homes on Homagio' : 'Homes people are cataloging'}
             </h2>
             <p style={{fontSize: '15px', color: '#666', marginTop: '6px'}}>Real homes. Real materials. Real inspiration.</p>
           </div>
           <a href="/signup" style={{fontSize: '14px', color: '#006aff', fontWeight: 500, textDecoration: 'none'}}>View all →</a>
         </div>
 
-        {featuredHomes && featuredHomes.length > 0 ? (
+        {featuredHomes.length > 0 ? (
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px'}}>
-            {featuredHomes.map(home => (
-              <div key={home.id} style={{borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e5e5', background: '#fff', cursor: 'pointer', transition: 'box-shadow 0.15s'}}>
+            {featuredHomes.map((home: any) => (
+              <div key={home.id} style={{borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e5e5', background: '#fff', cursor: 'pointer'}}>
                 <div style={{position: 'relative', height: '220px', overflow: 'hidden', background: '#0D1B2A'}}>
                   {home.photo_url ? (
-                    <img
-                      src={home.photo_url}
-                      alt={home.name || home.address}
-                      style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}
-                    />
+                    <img src={home.photo_url} alt={home.name || home.address} style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}} />
                   ) : (
                     <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', opacity: 0.4}}>🏠</div>
                   )}
@@ -127,15 +131,9 @@ export default async function Home() {
                   </div>
                 </div>
                 <div style={{padding: '16px'}}>
-                  <div style={{fontSize: '17px', fontWeight: 700, color: '#1a1a1a', marginBottom: '2px'}}>
-                    {home.name || home.address}
-                  </div>
-                  {home.name && (
-                    <div style={{fontSize: '13px', color: '#888', marginBottom: '4px'}}>{home.address}</div>
-                  )}
-                  <div style={{fontSize: '13px', color: '#888', marginBottom: '10px'}}>
-                    {home.city}, {home.state} {home.zip}
-                  </div>
+                  <div style={{fontSize: '17px', fontWeight: 700, color: '#1a1a1a', marginBottom: '2px'}}>{home.name || home.address}</div>
+                  {home.name && <div style={{fontSize: '13px', color: '#888', marginBottom: '4px'}}>{home.address}</div>}
+                  <div style={{fontSize: '13px', color: '#888', marginBottom: '10px'}}>{home.city}, {home.state} {home.zip}</div>
                   {home.value_estimate && (
                     <div style={{fontSize: '13px', color: '#666', marginBottom: '8px'}}>
                       Homagio Estimate™: <span style={{color: '#006aff', fontWeight: 600}}>${Math.round(home.value_estimate / 100).toLocaleString()}</span>
@@ -152,7 +150,6 @@ export default async function Home() {
             ))}
           </div>
         ) : (
-          // Fallback placeholder cards if no public homes yet
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px'}}>
             {[
               {img: 'photo-1568605114967-8130f3a36994', addr: '2847 Elmwood Drive', city: 'Nashville, TN 37215', beds: 4, baths: 3, sqft: '2,840'},
@@ -176,13 +173,13 @@ export default async function Home() {
         )}
       </div>
 
-      {/* Stats — real numbers */}
+      {/* Stats */}
       <div style={{background: '#f8f8f8', borderTop: '1px solid #efefef', borderBottom: '1px solid #efefef', padding: '28px 32px'}}>
         <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '48px', flexWrap: 'wrap'}}>
           {[
-            {n: homesCount ?? 0, l: 'Homes cataloged'},
-            {n: roomsCount ?? 0, l: 'Rooms tracked'},
-            {n: materialsCount ?? 0, l: 'Materials cataloged'},
+            {n: homesCount, l: 'Homes cataloged'},
+            {n: roomsCount, l: 'Rooms tracked'},
+            {n: materialsCount, l: 'Materials cataloged'},
             {n: '4.9★', l: 'User satisfaction'},
           ].map(stat => (
             <div key={stat.l} style={{textAlign: 'center'}}>
