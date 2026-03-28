@@ -27,6 +27,8 @@ export default function HomeDetailClient({ home, rooms, materials, homeId }: {
   const [homePhoto, setHomePhoto] = useState<string>(home.photo_url || '')
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const [isPublic, setIsPublic] = useState<boolean>(home.is_public || false)
+  const [toggleLoading, setToggleLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const totalMaterialValue = materials.reduce((sum, m) => sum + (m.cost || 0), 0)
   const totalPhotos = materials.filter(m => m.photo_url).length + (homePhoto ? 1 : 0)
@@ -63,6 +65,15 @@ export default function HomeDetailClient({ home, rooms, materials, homeId }: {
     }
   }
 
+  const handleTogglePublic = async () => {
+    setToggleLoading(true)
+    const supabase = createClient()
+    const newValue = !isPublic
+    await supabase.from('homes').update({ is_public: newValue }).eq('id', homeId)
+    setIsPublic(newValue)
+    setToggleLoading(false)
+  }
+
   return (
     <>
       <style>{`
@@ -74,6 +85,15 @@ export default function HomeDetailClient({ home, rooms, materials, homeId }: {
         .material-row:hover { background: #f9fafb; }
         .tag { display: inline-flex; align-items: center; gap: 4px; background: #f3f4f6; color: #374151; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
         @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        .toggle-track {
+          width: 44px; height: 24px; border-radius: 12px; cursor: pointer; border: none;
+          transition: background 0.2s; position: relative; flex-shrink: 0;
+        }
+        .toggle-thumb {
+          position: absolute; top: 3px; width: 18px; height: 18px;
+          background: #fff; border-radius: 50%; transition: left 0.2s;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
       `}</style>
 
       <div style={{minHeight: '100vh', background: '#f7f9fc', fontFamily: 'system-ui, sans-serif'}}>
@@ -142,10 +162,32 @@ export default function HomeDetailClient({ home, rooms, materials, homeId }: {
                     {home.year_built && <span className="tag">📅 Built {home.year_built}</span>}
                   </div>
                 </div>
-                <div style={{textAlign: 'right'}}>
-                  <div style={{fontSize: '12px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px'}}>Homagio Estimate™</div>
-                  <div style={{fontSize: '28px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '-1px'}}>—</div>
-                  <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '2px'}}>Coming soon</div>
+                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px'}}>
+                  {/* Make Public Toggle */}
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', background: '#f7f9fc', padding: '10px 16px', borderRadius: '10px', border: '1px solid #e9edf2'}}>
+                    <div>
+                      <div style={{fontSize: '13px', fontWeight: 600, color: '#374151'}}>
+                        {isPublic ? '🌍 Public' : '🔒 Private'}
+                      </div>
+                      <div style={{fontSize: '11px', color: '#9ca3af', marginTop: '1px'}}>
+                        {isPublic ? 'Visible on Explore & landing page' : 'Only you can see this home'}
+                      </div>
+                    </div>
+                    <button
+                      className="toggle-track"
+                      onClick={handleTogglePublic}
+                      disabled={toggleLoading}
+                      style={{background: isPublic ? '#006aff' : '#d1d5db', opacity: toggleLoading ? 0.6 : 1} as any}
+                    >
+                      <div className="toggle-thumb" style={{left: isPublic ? '23px' : '3px'}} />
+                    </button>
+                  </div>
+
+                  <div style={{textAlign: 'right'}}>
+                    <div style={{fontSize: '12px', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px'}}>Homagio Estimate™</div>
+                    <div style={{fontSize: '28px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '-1px'}}>—</div>
+                    <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '2px'}}>Coming soon</div>
+                  </div>
                 </div>
               </div>
             </div>
