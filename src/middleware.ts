@@ -4,11 +4,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  // Public routes — skip ALL Supabase processing entirely
-  // No getUser(), no cookie touching, just pass through
   const isPublicRoute =
     path === '/' ||
     path.startsWith('/explore') ||
+    path.startsWith('/about') ||
+    path.startsWith('/faq') ||
+    path.startsWith('/contact') ||
     path.startsWith('/auth') ||
     path.startsWith('/api') ||
     path.startsWith('/loading')
@@ -17,7 +18,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
-  // For all other routes, run the full session refresh
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -43,7 +43,6 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protected routes — require auth
   const isProtectedRoute =
     path.startsWith('/dashboard') ||
     path.startsWith('/homes')
@@ -54,7 +53,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Login/signup — redirect logged-in users to dashboard
   if ((path.startsWith('/login') || path.startsWith('/signup')) && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
