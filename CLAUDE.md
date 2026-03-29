@@ -325,7 +325,7 @@ Clicking the homagio logo from the dashboard to `/` sometimes logs the user out.
 - [ ] Email notifications via Resend (reminders, updates)
 - [ ] Home timeline — log events, renovations, purchases over time
 - [ ] Maintenance reminders — schedule reminders per material/system
-- [ x] Welcome email on signup ✅ already done
+- [x] Welcome email on signup ✅ already done
 
 ### 📋 Phase 9 — Polish + Mobile
 - [ ] Full mobile responsive pass on all interior pages
