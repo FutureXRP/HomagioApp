@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN
+const MAPBOX_TOKEN = 'pk.eyJ1IjoidGhlNWJsYWlycyIsImEiOiJjbW5hdmpheXAwbmZsMnFxMWo2bjBpcjdmIn0.Px8zSq6gn-Z3geHSYRB9LA'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -9,10 +9,6 @@ export async function GET(req: NextRequest) {
 
   if (!query) {
     return NextResponse.json({ error: 'Missing query' }, { status: 400 })
-  }
-
-  if (!MAPBOX_TOKEN) {
-    return NextResponse.json({ error: 'Mapbox token not configured' }, { status: 500 })
   }
 
   try {
