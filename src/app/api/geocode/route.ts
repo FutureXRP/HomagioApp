@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const query = searchParams.get('q')
-  const mode = searchParams.get('mode') || 'geocode' // 'geocode' or 'suggest'
+  const mode = searchParams.get('mode') || 'geocode'
 
   if (!query) {
     return NextResponse.json({ error: 'Missing query' }, { status: 400 })
@@ -20,10 +20,8 @@ export async function GET(req: NextRequest) {
 
     let url = ''
     if (mode === 'suggest') {
-      // Autosuggest — returns address suggestions as user types
       url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&country=US&types=address&limit=5`
     } else {
-      // Full geocode — returns lat/lng for a complete address
       url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?access_token=${MAPBOX_TOKEN}&limit=1&country=US&types=address`
     }
 
