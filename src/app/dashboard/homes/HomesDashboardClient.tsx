@@ -152,7 +152,7 @@ export default function HomesDashboardClient({ homes }: { homes: any[] }) {
                 svg: <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="2.5" width="15" height="15" rx="1.5" stroke="#3db85a" strokeWidth="1.5" fill="none"/><path d="M6 14l3-3 2 2 3-4" stroke="#3db85a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               },
               {
-                label: 'Cities', value: [...new Set(homes.map(h => h.city).filter(Boolean))].length || '—',
+                label: 'Cities', value: Array.from(new Set(homes.map(h => h.city).filter(Boolean))).length || '—',
                 svg: <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2a5 5 0 015 5c0 3.5-5 11-5 11S5 10.5 5 7a5 5 0 015-5z" stroke="#3db85a" strokeWidth="1.5" fill="none"/><circle cx="10" cy="7" r="1.5" stroke="#3db85a" strokeWidth="1.5" fill="none"/></svg>
               },
             ].map(stat => (
