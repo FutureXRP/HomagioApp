@@ -85,6 +85,7 @@ export default async function Home() {
           box-shadow: 0 6px 24px rgba(61,184,90,0.12);
           transform: translateY(-2px);
         }
+        .cta-btn:hover { opacity: 0.88; }
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .desktop-buttons { display: none !important; }
@@ -316,9 +317,8 @@ export default async function Home() {
         </p>
         <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <a href="/signup">
-            <button style={{ background: '#3db85a', color: '#fff', border: 'none', padding: '16px 40px', borderRadius: '10px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#34a34f')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#3db85a')}
+            <button style={{ background: '#3db85a', color: '#fff', border: 'none', padding: '16px 40px', borderRadius: '10px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.15s' }}
+              className="cta-btn"
             >Catalogue My Home — It's Free</button>
           </a>
           <a href="/explore">
@@ -341,9 +341,7 @@ export default async function Home() {
               { label: 'FAQs', href: '/faq' }, { label: 'About Us', href: '/about' },
               { label: 'Contact', href: '/contact' }, { label: 'Privacy', href: '#' }, { label: 'Terms', href: '#' },
             ].map(link => (
-              <a key={link.label} href={link.href} style={{ fontSize: '13px', color: '#6b7280', textDecoration: 'none', transition: 'color 0.12s' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#3db85a')}
-                onMouseLeave={e => (e.currentTarget.style.color = '#6b7280')}
+              <a key={link.label} href={link.href} style={{ fontSize: '13px', color: '#6b7280', textDecoration: 'none' }}
               >{link.label}</a>
             ))}
           </div>
