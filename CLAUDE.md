@@ -25,12 +25,39 @@ Two user types:
 
 ## 🎨 Design Language
 
-- Style: Zillow-inspired (clean, white, minimal, trustworthy)
-- Primary color: #006aff (Zillow blue)
-- Typography: System sans-serif, clean hierarchy
-- Brand name: homagio (lowercase logo, blue "hom" accent)
-- Flagship product term: "Homagio Estimate™" (like Zillow's Zestimate)
-- NOTE: Full design polish pass planned after all core flows are built
+### Brand Colors
+- **Homagio Blue:** `#006aff` (primary actions, links)
+- **Homagio Green:** `#3db85a` (CTAs, accents, active states, prices)
+- **Deep Navy:** `#0D1B2A` (dark cards, hero backgrounds, feature cards)
+- **Navy Mid:** `#112236` (hover state on navy elements)
+- **White/Light:** `#f7f9fc` page bg, `#fff` card bg, `#e9edf2` borders
+
+### Typography
+- **Font:** DM Sans (Google Fonts) — loaded via @import in every file
+- **Weights used:** 400, 500, 600, 700
+- Never use system-ui alone — always DM Sans first
+
+### Design Principles
+- No emoji anywhere in UI — use SVG icons only
+- Dark navy cards for feature sections (dashboard, landing page features)
+- Green accent (`#3db85a`) on active states, CTAs, prices, hover borders
+- Thin green shimmer line on top of dark navy cards: `linear-gradient(90deg, transparent, rgba(61,184,90,0.4), transparent)`
+- Stat cards: white bg + dark navy icon box (44x44, border-radius 12px) + SVG icon in green
+- Empty states: dark navy card with green shimmer line on top
+- Green-to-blue gradient accent bar (4px) under hero photos: `linear-gradient(90deg, #3db85a 0%, #006aff 100%)`
+- Room cards use dark color variants per room type (kitchen=dark amber, bathroom=dark green, etc.)
+
+### Logo
+- **Selected logo:** Image 6 (blue house, green roof, camera lens door, lowercase "homagio")
+- **Cloudinary URL:** `https://res.cloudinary.com/dlb0guicc/image/upload/v1774805332/6_wln7y2.png`
+- **Known issue:** Logo has too much white space — needs to be re-cropped in Cloudinary for proper sizing
+- **Usage:** `<img src={LOGO_URL} alt="homagio" style={{ height: '52px', width: 'auto' }} />`
+- **LOGO_URL constant** is defined at the top of every client file — single line to update when re-cropped
+- Used in: DashboardClient, HomesDashboardClient, HomeDetailClient, RoomDetailClient, MaterialDetailClient, page.tsx (landing)
+
+### Brand name: homagio (lowercase logo)
+### Flagship product term: "Homagio Estimate™"
+### NOTE: Full design polish pass completed Session 8 — all interior pages and landing page unified
 
 ---
 
@@ -61,7 +88,7 @@ Two user types:
 - RESEND_API_KEY
 - RESEND_FROM_EMAIL
 - NEXT_PUBLIC_MAPBOX_TOKEN
-- MAPBOX_TOKEN (server-side, same value — env var doesn't load reliably, token is hardcoded in route.ts)
+- MAPBOX_TOKEN (server-side — env var unreliable, token hardcoded in route.ts)
 
 ## ☁️ Cloudinary
 - Cloud Name: dlb0guicc
@@ -70,23 +97,13 @@ Two user types:
 - Upload goes directly from browser to Cloudinary (no server needed)
 
 ## 🗺️ Mapbox
-- Token stored in NEXT_PUBLIC_MAPBOX_TOKEN in Vercel
-- Also hardcoded in ExploreClient.tsx (public pk. token — safe to commit)
-- Also hardcoded in src/app/api/geocode/route.ts (same public token — safe to commit)
-- Token name in Mapbox dashboard: "Homagio App"
-- Allowed URL: https://homagio-app.vercel.app (cannot remove — needed for map)
+- Token hardcoded in ExploreClient.tsx and src/app/api/geocode/route.ts (public token — safe)
+- Token: pk.eyJ1IjoidGhlNWJsYWlycyIsImEiOiJjbW5hdmpheXAwbmZsMnFxMWo2bjBpcjdmIn0.Px8zSq6gn-Z3geHSYRB9LA
+- Token has URL restriction (homagio-app.vercel.app) — blocks unrestricted server calls
 - Default map center: Tulsa, OK [-95.9928, 36.1540], zoom 11
-- Use default Mapbox marker with color option — NOT custom HTML elements (causes pin jumping bug)
-- Homes need lat + lng columns populated in Supabase to show as pins
+- Use default Mapbox marker with color option — NOT custom HTML elements
 - The Blair House: lat=36.0868, lng=-96.0639
-
-## 📍 Geocoding
-- API route at src/app/api/geocode/route.ts handles both suggest and geocode modes
-- Token hardcoded in route.ts (NEXT_PUBLIC_ vars don't load server-side reliably; MAPBOX_TOKEN env var also tried but failed — hardcode is the working solution)
-- Mapbox token has URL restriction (homagio-app.vercel.app) — this blocks server-side geocoding API calls
-- WORKAROUND: Token is hardcoded directly in route.ts since it's a public token (same as ExploreClient.tsx)
-- Address autocomplete UI is built in Add Home form but blocked by Mapbox URL token restriction
-- TODO: Create a second unrestricted Mapbox token for server-side geocoding, store as MAPBOX_GEOCODE_TOKEN
+- TODO: Create second unrestricted Mapbox token for geocoding API (MAPBOX_GEOCODE_TOKEN)
 
 ---
 
@@ -102,7 +119,7 @@ Two user types:
 - **home_timeline** (id, home_id, event_type, description, cost, event_date, created_at)
 - Row Level Security enabled on all tables
 - Auto profile creation trigger on new user signup
-- NOTE: materials.category column was missing — added via SQL: `ALTER TABLE materials ADD COLUMN IF NOT EXISTS category text;`
+- NOTE: materials.category column was added via SQL: `ALTER TABLE materials ADD COLUMN IF NOT EXISTS category text;`
 
 ---
 
@@ -112,263 +129,149 @@ Two user types:
 HomagioApp/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx                                      ✅ landing page (server component, fault-tolerant fetch, no createClient)
+│   │   ├── page.tsx                                      ✅ landing page — polished, logo, dark navy feature cards, no emoji
 │   │   ├── globals.css                                   ✅
 │   │   ├── layout.tsx                                    ✅
-│   │   ├── about/
-│   │   │   └── page.tsx                                  ✅ About Us page with Blair House origin story
-│   │   ├── faq/
-│   │   │   └── page.tsx                                  ✅ FAQ accordion (10 questions, client component)
-│   │   ├── contact/
-│   │   │   └── page.tsx                                  ✅ Contact form — wired to /api/send-contact, shows success state
+│   │   ├── about/page.tsx                                ✅
+│   │   ├── faq/page.tsx                                  ✅
+│   │   ├── contact/page.tsx                              ✅ wired to /api/send-contact
 │   │   ├── explore/
-│   │   │   ├── page.tsx                                  ✅ server component, fetches public homes
-│   │   │   ├── ExploreClient.tsx                         ✅ Mapbox map, left panel list, sidebar panel on pin click
+│   │   │   ├── page.tsx                                  ✅
+│   │   │   ├── ExploreClient.tsx                         ✅ Mapbox map + blue dot user location
 │   │   │   └── [homeId]/
-│   │   │       ├── page.tsx                              ✅ server component, public profile
-│   │   │       └── PublicHomeClient.tsx                  ✅ hero photo, stats, expandable rooms + materials, buy links
+│   │   │       ├── page.tsx                              ✅
+│   │   │       └── PublicHomeClient.tsx                  ✅
 │   │   ├── (auth)/
-│   │   │   ├── login/page.tsx                            ✅ email + Google OAuth working
-│   │   │   └── signup/page.tsx                           ✅ working, triggers welcome email
+│   │   │   ├── login/page.tsx                            ✅
+│   │   │   └── signup/page.tsx                           ✅
 │   │   ├── dashboard/
-│   │   │   ├── page.tsx                                  ✅ server component, auth checked server-side
-│   │   │   ├── DashboardClient.tsx                       ✅ welcome screen, feature cards, Explore link active
+│   │   │   ├── page.tsx                                  ✅ fetches homes, stats, recent materials
+│   │   │   ├── DashboardClient.tsx                       ✅ POLISHED — dark cards, stats bar, homes snapshot, recent materials
 │   │   │   └── homes/
-│   │   │       ├── page.tsx                              ✅ server component
-│   │   │       └── HomesDashboardClient.tsx              ✅ homes grid, stats, add home button
+│   │   │       ├── page.tsx                              ✅
+│   │   │       └── HomesDashboardClient.tsx              ✅ POLISHED — real photos, SVG icons, green accents
 │   │   ├── homes/
-│   │   │   ├── add/page.tsx                              ✅ 2-step form, geocoding on submit, address autocomplete UI built (dropdown blocked by Mapbox token URL restriction)
+│   │   │   ├── add/page.tsx                              ✅ geocoding + address autocomplete UI
 │   │   │   └── [id]/
-│   │   │       ├── page.tsx                              ✅ server component
-│   │   │       ├── HomeDetailClient.tsx                  ✅ home photo upload, public/private toggle, rooms grid, recent materials
+│   │   │       ├── page.tsx                              ✅
+│   │   │       ├── HomeDetailClient.tsx                  ✅ POLISHED — dark room cards, SVG icons, green accents
 │   │   │       └── rooms/
-│   │   │           ├── add/page.tsx                      ✅ add room form with type + floor selector
+│   │   │           ├── add/page.tsx                      ✅
 │   │   │           └── [roomId]/
-│   │   │               ├── page.tsx                      ✅ server component
-│   │   │               ├── RoomDetailClient.tsx          ✅ room photo upload, materials list with thumbnails, clickable rows
+│   │   │               ├── page.tsx                      ✅
+│   │   │               ├── RoomDetailClient.tsx          ✅ POLISHED — room color cards, SVG icons, green accents
 │   │   │               └── materials/
-│   │   │                   ├── add/page.tsx              ✅ full form with Cloudinary photo upload
+│   │   │                   ├── add/page.tsx              ✅
 │   │   │                   └── [materialId]/
-│   │   │                       ├── page.tsx              ✅ server component
-│   │   │                       ├── MaterialDetailClient.tsx  ✅ full photo, detail grid, buy button, edit button
+│   │   │                       ├── page.tsx              ✅
+│   │   │                       ├── MaterialDetailClient.tsx  ✅ POLISHED — green cost, dark AI card, SVG edit icon
 │   │   │                       └── edit/
-│   │   │                           ├── page.tsx          ✅ server component
-│   │   │                           └── EditMaterialClient.tsx ✅ pre-populated form, photo change/remove, delete with confirm
-│   │   ├── loading/
-│   │   │   └── page.tsx                                  ✅ simple redirect to /dashboard
+│   │   │                           ├── page.tsx          ✅
+│   │   │                           └── EditMaterialClient.tsx ✅
+│   │   ├── loading/page.tsx                              ✅
 │   │   ├── api/
-│   │   │   ├── send-welcome/route.ts                     ✅ welcome email via Resend on signup
-│   │   │   ├── send-contact/route.ts                     ✅ contact form emails via Resend (2 emails: notify you + confirm to sender)
-│   │   │   └── geocode/route.ts                          ✅ Mapbox geocoding + autosuggest, token hardcoded (public token)
-│   │   └── auth/
-│   │       └── callback/route.ts                         ✅ OAuth code exchange, redirects to /dashboard
-│   ├── middleware.ts                                      ✅ protects /dashboard + /homes, public routes bypass entirely
-│   └── lib/
-│       └── supabase/
-│           ├── client.ts                                 ✅ createBrowserClient for client components
-│           └── server.ts                                 ✅ createServerClient with cookies for server components
-├── vercel.json                                           ✅
-├── next.config.js                                        ✅
-├── tailwind.config.ts                                    ✅
-├── tsconfig.json                                         ✅
-├── postcss.config.js                                     ✅
-└── package.json                                          ✅ includes @supabase/ssr, resend
+│   │   │   ├── send-welcome/route.ts                     ✅
+│   │   │   ├── send-contact/route.ts                     ✅
+│   │   │   └── geocode/route.ts                          ✅ token hardcoded (public)
+│   │   └── auth/callback/route.ts                        ✅
+│   ├── middleware.ts                                      ✅
+│   └── lib/supabase/
+│       ├── client.ts                                     ✅
+│       └── server.ts                                     ✅
+└── package.json                                          ✅
 ```
 
 ---
 
-## 🔧 Auth Architecture (CRITICAL — hard-won fix, do not change)
+## 🔧 Auth Architecture (CRITICAL — do not change)
 
-The auth was completely rebuilt in Session 5 after major race condition issues.
+- All protected pages are server components calling `supabase.auth.getUser()` server-side
+- Middleware protects `/dashboard` and `/homes` — redirects to `/login` if no session
+- Public routes bypass ALL Supabase processing in middleware
+- Never use `getSession()` — always use `getUser()`
+- Landing page uses direct REST fetch (not createClient) to avoid session interference
+- `proxy.ts` is DELETED — do not recreate
+- Always use `window.location.href` for redirects in client components — never useRouter
 
-**Key principles:**
-- All protected pages are **server components** that call `supabase.auth.getUser()` server-side before rendering anything
-- Middleware at `src/middleware.ts` protects `/dashboard` and `/homes` routes — redirects to `/login` if no session
-- **Public routes bypass ALL Supabase processing in middleware** — no getUser(), no cookie touching, just NextResponse.next()
-- Client components handle UI only — no auth checks in client components
-- Login page calls `signInWithPassword` and redirects to `/dashboard` when `data.session` is confirmed
-- `proxy.ts` has been DELETED — do not recreate it
-- Never use `getSession()` for auth — always use `getUser()`
-- The landing page uses direct REST fetch (not createClient) to avoid session interference
-
-**Public routes (middleware skips entirely):**
-`/`, `/explore/*`, `/about`, `/faq`, `/contact`, `/auth/*`, `/api/*`, `/loading`
-
-**Protected routes (redirect to /login if no session):**
-`/dashboard/*`, `/homes/*`
-
-**Standard page pattern:**
-```
-page.tsx (async server component)
-  → await supabase.auth.getUser()
-  → if !user: redirect('/login')
-  → fetch data from Supabase
-  → return <XxxClient data={data} />
-
-XxxClient.tsx ('use client')
-  → pure UI component
-  → uses window.location.href for navigation
-  → imports createClient() only for mutations (update, insert, delete)
-```
-
-**Known issue (deferred to Bolt.new):**
-Clicking the homagio logo from the dashboard to `/` sometimes logs the user out. Root cause unclear — possibly session cookie interference on the landing page server render. Do not attempt to fix without a live debug environment.
+**Public routes:** `/`, `/explore/*`, `/about`, `/faq`, `/contact`, `/auth/*`, `/api/*`, `/loading`
+**Protected routes:** `/dashboard/*`, `/homes/*`
 
 ---
 
 ## 🏗️ Build Phases
 
-### ✅ Phase 0 — Complete
-- [x] Product vision, feature spec, design language, tech stack decisions
+### ✅ Phases 0–3d — Complete
+All foundation, auth, core flows, photo upload, public/private toggle, Explore map, landing page, public pages, geocoding, contact form
 
-### ✅ Phase 1a — Foundation Complete
-- [x] GitHub repo created
-- [x] Next.js 14 App Router initialized
-- [x] Vercel Pro deployment configured
-- [x] Live site at homagio-app.vercel.app
+### ✅ Phase 3e (partial) — Complete
+- [x] Geocoding API route + address autocomplete UI (token restriction blocks full autocomplete)
+- [x] Blue dot user location on Explore map
+- [x] Contact form wired to Resend (blocked until custom domain)
 
-### ✅ Phase 1b — Auth Complete
-- [x] Supabase project connected with @supabase/ssr package
-- [x] Browser client (client.ts) and server client (server.ts) set up
-- [x] Email/password login working — single login, no race conditions
-- [x] Google OAuth working
-- [x] Auth callback route at /auth/callback exchanges code for session
-- [x] Middleware protecting /dashboard and /homes routes
-- [x] Welcome email via Resend fires on new signup
-- [x] Auto profile creation trigger in Supabase on new user
-
-### ✅ Phase 1c — Core Flows Complete
-- [x] Add Home flow — 2-step form (address → details)
-- [x] Exterior room auto-created on every new home
-- [x] Individual home page with all details
-- [x] Add Room flow with room type and floor selector
-- [x] Room detail page
-- [x] Add Material flow — name, brand, category, color, finish, cost, purchase URL, affiliate URL
-- [x] Material detail page — full info display
-- [x] Edit Material — pre-populated form, update, delete with confirmation
-- [x] Dashboard welcome screen with feature cards
-- [x] My Homes page with homes grid
-
-### ✅ Phase 2a — Photo Upload Complete
-- [x] Cloudinary account connected (cloud: dlb0guicc, preset: HomagioApp)
-- [x] Home exterior photo upload
-- [x] Room hero photo upload
-- [x] Material photo upload
-- [x] Room cards on home detail page show photo thumbnail if available
-- [x] Material rows show 52x52 photo thumbnail if available
-
-### ✅ Phase 2b — Public/Private Toggle Complete
-- [x] is_public column on homes table
-- [x] Toggle UI on home detail page
-- [x] Public homes appear on landing page and Explore map
-
-### ✅ Phase 3a — Explore + Map Complete
-- [x] Mapbox GL JS v3.3.0 loaded dynamically in ExploreClient
-- [x] /explore page — full screen map with left panel home list
-- [x] Map pins, sidebar panel, public home profile page all working
-
-### ✅ Phase 3b — Landing Page + Nav Complete
-- [x] Full nav, mobile hamburger menu, featured homes, stats section, footer
-
-### ✅ Phase 3c — Public Pages Complete
-- [x] /faq, /about, /contact pages all built
-
-### ✅ Phase 3d — Geocoding + Contact Email Complete
-- [x] Contact form wired to Resend API via /api/send-contact
-- [x] Two emails on submit: notification to owner + confirmation to sender
-- [x] Contact form emails blocked until custom domain added to Resend (free tier limitation)
-- [x] Geocoding API route at /api/geocode (suggest + geocode modes)
-- [x] Add Home form geocodes address on submit → saves lat/lng to homes table
-- [x] Address autocomplete UI built — dropdown blocked by Mapbox token URL restriction
-- [x] Fixed missing materials.category column in Supabase
-
-### 📋 Phase 3e — Remaining Nice-to-Haves
-- [ ] Fix address autocomplete — create second unrestricted Mapbox token (MAPBOX_GEOCODE_TOKEN)
-- [ ] Wire contact form email — requires custom domain in Resend
-- [ ] Public room pages: /explore/[homeId]/rooms/[roomId]
-- [ ] Public material pages: /explore/[homeId]/rooms/[roomId]/materials/[materialId]
-- [ ] Add "Save this home" / favorites functionality for logged-in users
+### ✅ Phase UI Polish — Complete (Session 8)
+- [x] Unified design system: DM Sans, #3db85a green, #0D1B2A navy, SVG icons, no emoji
+- [x] Logo selected (Image 6) and integrated across all pages
+- [x] DashboardClient — dark feature cards, stats bar, homes snapshot, recent materials
+- [x] HomesDashboardClient — real home photos, SVG stats, green hovers
+- [x] HomeDetailClient — dark room cards with room-type colors and SVG icons
+- [x] RoomDetailClient — room color on photo placeholder, SVG icons, dark empty states
+- [x] MaterialDetailClient — green cost display, dark AI card, SVG edit icon
+- [x] Landing page — logo, dark navy feature grid, quick links as dark cards, no emoji
+- [ ] Logo re-crop needed — too much white space around current image
 
 ### 📋 Phase 4 — Core Product Features
-- [ ] Budget tracker — track spending per room, total vs estimated
-- [ ] ROI calculator — estimated home value impact per material category
-- [ ] Shopping list generator — export all materials as a shoppable list
-- [ ] PDF export of shopping list and home spec sheet
-- [ ] Homagio Estimate™ — home value estimate based on materials cataloged
+- [ ] Budget tracker
+- [ ] ROI calculator
+- [ ] Shopping list generator
+- [ ] PDF export
+- [ ] Homagio Estimate™
 
 ### 📋 Phase 5 — AI Features
 - [ ] AI material detection — OpenAI Vision API
-- [ ] Upload photo → AI identifies material, brand, color, finish automatically
-- [ ] AI confidence score stored in materials.ai_confidence
-- [ ] Manual override if AI is wrong
 
 ### 📋 Phase 6 — Stripe + Monetization
-- [ ] Stripe subscriptions — Free / Premium / Pro Studio tiers
-- [ ] Gate AI detection behind paid tier
-- [ ] Stripe Connect for homeowner affiliate payouts
-- [ ] Affiliate earnings dashboard for homeowners
-- [ ] Commission split: Free 70/30, Premium 80/20, Pro 85/15
+- [ ] Stripe subscriptions
+- [ ] Stripe Connect + affiliate payouts
 
 ### 📋 Phase 7 — Pro Studio
-- [ ] Pro user dashboard — separate from homeowner dashboard
-- [ ] Client management — add/manage client homes
-- [ ] Portfolio view — showcase completed projects
-- [ ] PDF spec sheet exports for clients
-- [ ] Pro badge on public home profiles
+- [ ] Pro user dashboard
+- [ ] Client management + portfolio
 
 ### 📋 Phase 8 — Retention + Growth
-- [ ] Custom domain for Resend (unlocks sending to any email)
-- [ ] Email notifications via Resend (reminders, updates)
-- [ ] Home timeline — log events, renovations, purchases over time
-- [ ] Maintenance reminders — schedule reminders per material/system
-- [x] Welcome email on signup ✅ already done
+- [ ] Custom domain for Resend (unlocks contact form + welcome emails to any address)
+- [ ] Home timeline, maintenance reminders
 
 ### 📋 Phase 9 — Polish + Mobile
-- [ ] Full mobile responsive pass on all interior pages
-- [ ] React Native mobile app
-- [ ] Design polish pass (once all features built)
-- [ ] Fix login navigation issue (logo click logs out — defer to Bolt.new)
-
----
-
-## 💰 Affiliate Revenue Model (build in Phase 6)
-
-Homagio operates a single master affiliate account across all retailers.
-Every "Shop This Material" link routes through Homagio's affiliate links.
-
-**Commission split options:**
-- Option A: 80% homeowner / 20% Homagio
-- Option B: 60% homeowner / 40% Homagio
-- Option C: Tiered by subscription — Free: 70/30, Premium: 80/20, Pro: 85/15
+- [ ] Logo re-crop — remove white space, upload to Cloudinary, update LOGO_URL in all 6 files
+- [ ] Fix address autocomplete — create unrestricted Mapbox token
+- [ ] Mobile responsive pass
+- [ ] React Native app
+- [ ] Fix login logo-click logout bug (defer to Bolt.new)
 
 ---
 
 ## ⚠️ Important Notes for Claude
 
 - Owner is on Mac, no local terminal experience
-- Use GitHub web UI to create/edit files — Add File → Create New File for new files
+- Use GitHub web UI — Add File → Create New File for new files
 - All files committed directly to main branch
 - Vercel Pro auto-deploys every commit to main
-- Always use `window.location.href` for redirects in client components — never useRouter
+- **Always deliver code as downloadable files** — not pasted in chat
+- **Always provide full file paths** (e.g. `src/app/dashboard/DashboardClient.tsx`)
+- **page.tsx is a server component** — never add onMouseEnter/onMouseLeave or any React event handlers to it
+- **NEXT_PUBLIC_ env vars don't load reliably server-side** — hardcode public tokens in server files
+- **Set spread on TypeScript** — use `Array.from(new Set(...))` not `[...new Set(...)]`
 - All monetary values stored in cents in database
 - User roles: 'homeowner' | 'pro' | 'admin'
 - Subscription tiers: 'free' | 'premium' | 'pro_studio'
-- **proxy.ts is DELETED** — do not recreate it
-- **Never use custom HTML elements for Mapbox markers** — use `new mapboxgl.Marker({ color: '#006aff' })`
-- **Landing page must use direct REST fetch, NOT createClient()** — prevents session logout bug
-- **Contact form emails deferred** — Resend free tier requires custom domain to send to arbitrary emails
-- **NEXT_PUBLIC_ env vars do not load reliably server-side** — hardcode public tokens in server files instead
-- **Mapbox token has URL restriction** — cannot be used unrestricted server-side; hardcode in route.ts is the workaround
-- TypeScript: always use `interface PageProps { params: { id: string } }` for dynamic route server components
-- **Always provide complete file paths** when giving files to commit (e.g. `src/app/api/geocode/route.ts`)
-- **Always deliver code as downloadable files** — not pasted in chat
+- TypeScript: use `interface PageProps { params: { id: string } }` for dynamic route server components
 
 ## 📧 Email Architecture
 - Provider: Resend (free tier)
-- From address: onboarding@resend.dev (until custom domain set up)
-- Welcome email fires on signup via /api/send-welcome route
-- Contact form emails via /api/send-contact route (2 emails: owner notification + sender confirmation)
-- Contact form email delivery blocked until custom domain added to Resend
+- From: onboarding@resend.dev (until custom domain)
+- Welcome email: /api/send-welcome
+- Contact form: /api/send-contact (2 emails: owner + sender confirmation)
+- Blocked until custom domain added to Resend
 
 ---
 
@@ -380,6 +283,6 @@ Every "Shop This Material" link routes through Homagio's affiliate links.
 
 ---
 
-*Last updated: Session 7 — Contact form wired to Resend API (two emails: owner notification + sender confirmation). Geocoding added to Add Home form via /api/geocode route — new homes auto-get lat/lng saved to Supabase. Address autocomplete UI built but dropdown blocked by Mapbox token URL restriction (TODO: create unrestricted token). Fixed missing materials.category column in Supabase. Established pattern of delivering code as downloadable files with full paths.*
+*Last updated: Session 8 — Full design polish pass completed. Unified design system across all pages: DM Sans font, #3db85a Homagio Green, #0D1B2A Deep Navy, SVG icons (no emoji anywhere), logo image in all navs. Logo selected (Image 6, blue house + green roof). DashboardClient expanded with stats bar, homes snapshot, and recent materials section. All 5 interior pages polished. Landing page updated with dark navy feature cards, logo, green accents. Known issue: logo needs re-crop to remove white space padding.*
 
-*Next session options: Fix address autocomplete with unrestricted Mapbox token, build budget tracker, build public room/material pages, or wire contact form email via custom Resend domain.*
+*Next session options: Re-crop logo, build budget tracker (Phase 4), fix address autocomplete with unrestricted Mapbox token, set up custom domain for Resend emails, or start Pro Dashboard.*
