@@ -1,32 +1,29 @@
 export const dynamic = 'force-dynamic'
 
+const LOGO_URL = 'https://res.cloudinary.com/dlb0guicc/image/upload/v1774805332/6_wln7y2.png'
+
 async function getPublicData() {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
     if (!supabaseUrl || !supabaseKey) {
       return { featuredHomes: [], homesCount: 0, roomsCount: 0, materialsCount: 0 }
     }
-
     const headers = {
       'apikey': supabaseKey,
       'Authorization': `Bearer ${supabaseKey}`,
       'Content-Type': 'application/json',
     }
-
     const [homesRes, allHomesRes, allRoomsRes, allMaterialsRes] = await Promise.allSettled([
       fetch(`${supabaseUrl}/rest/v1/homes?is_public=eq.true&photo_url=not.is.null&select=id,name,address,city,state,zip,bedrooms,bathrooms,square_feet,year_built,photo_url,value_estimate&order=created_at.desc&limit=3`, { headers, cache: 'no-store' }),
       fetch(`${supabaseUrl}/rest/v1/homes?select=id`, { headers, cache: 'no-store' }),
       fetch(`${supabaseUrl}/rest/v1/rooms?select=id`, { headers, cache: 'no-store' }),
       fetch(`${supabaseUrl}/rest/v1/materials?select=id`, { headers, cache: 'no-store' }),
     ])
-
     const featuredHomes = homesRes.status === 'fulfilled' && homesRes.value.ok ? await homesRes.value.json() : []
     const allHomes = allHomesRes.status === 'fulfilled' && allHomesRes.value.ok ? await allHomesRes.value.json() : []
     const allRooms = allRoomsRes.status === 'fulfilled' && allRoomsRes.value.ok ? await allRoomsRes.value.json() : []
     const allMaterials = allMaterialsRes.status === 'fulfilled' && allMaterialsRes.value.ok ? await allMaterialsRes.value.json() : []
-
     return {
       featuredHomes: Array.isArray(featuredHomes) ? featuredHomes : [],
       homesCount: Array.isArray(allHomes) ? allHomes.length : 0,
@@ -43,10 +40,51 @@ export default async function Home() {
   const { featuredHomes, homesCount, roomsCount, materialsCount } = await getPublicData()
 
   return (
-    <main style={{fontFamily: '-apple-system, Helvetica Neue, Arial, sans-serif', background: '#fff', color: '#1a1a1a'}}>
+    <main style={{ fontFamily: "'DM Sans', -apple-system, Helvetica Neue, Arial, sans-serif", background: '#fff', color: '#1a1a1a' }}>
       <style>{`
-        .nav-link-item { padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #444; text-decoration: none; transition: background 0.12s; }
-        .nav-link-item:hover { background: #f5f5f5; color: #006aff; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .nav-link-item { padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #444; text-decoration: none; transition: background 0.12s, color 0.12s; }
+        .nav-link-item:hover { background: #f5f5f5; color: #3db85a; }
+        .quick-card {
+          display: flex; flex-direction: column; align-items: flex-start;
+          gap: '0'; padding: 24px; background: #0D1B2A;
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 14px; cursor: pointer; text-decoration: none;
+          min-width: 160px; flex: 1;
+          transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+          position: relative; overflow: hidden;
+        }
+        .quick-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+          border-color: rgba(61,184,90,0.3);
+        }
+        .quick-card-shine {
+          position: absolute; top: 0; left: 0; right: 0; height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+        }
+        .feature-card {
+          background: #0D1B2A; padding: 36px 28px;
+          border: 1px solid rgba(255,255,255,0.06);
+          position: relative; overflow: hidden;
+          transition: border-color 0.15s;
+        }
+        .feature-card:hover { border-color: rgba(61,184,90,0.2); }
+        .feature-card-shine {
+          position: absolute; top: 0; left: 0; right: 0; height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+        }
+        .home-card {
+          text-decoration: none; border-radius: 16px; overflow: hidden;
+          border: 1.5px solid #e9edf2; background: #fff; display: block;
+          transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+        }
+        .home-card:hover {
+          border-color: #3db85a;
+          box-shadow: 0 6px 24px rgba(61,184,90,0.12);
+          transform: translateY(-2px);
+        }
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .desktop-buttons { display: none !important; }
@@ -58,138 +96,161 @@ export default async function Home() {
       `}</style>
 
       {/* Nav */}
-      <nav style={{position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: '#fff', borderBottom: '1px solid #e5e5e5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', height: '64px'}}>
-        <a href="/" style={{fontSize: '26px', fontWeight: 700, color: '#006aff', letterSpacing: '-1px', textDecoration: 'none'}}>
-          hom<span style={{color: '#1a1a1a'}}>agio</span>
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: '#fff', borderBottom: '1px solid #e5e5e5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', height: '64px' }}>
+        <a href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <img src={LOGO_URL} alt="homagio" style={{ height: '52px', width: 'auto' }} />
         </a>
-        <div className="desktop-nav" style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+        <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <a href="/signup" className="nav-link-item">Catalogue</a>
           <a href="/explore" className="nav-link-item">Explore</a>
           <a href="/faq" className="nav-link-item">FAQs</a>
           <a href="/about" className="nav-link-item">About Us</a>
           <a href="/contact" className="nav-link-item">Contact</a>
         </div>
-        <div className="desktop-buttons" style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <a href="/login"><button style={{padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: '#006aff', border: '1.5px solid #006aff', background: 'transparent', cursor: 'pointer'}}>Sign In</button></a>
-          <a href="/signup"><button style={{padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#fff', background: '#006aff', border: 'none', cursor: 'pointer'}}>Join Free</button></a>
+        <div className="desktop-buttons" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <a href="/login">
+            <button style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, color: '#006aff', border: '1.5px solid #006aff', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>Sign In</button>
+          </a>
+          <a href="/signup">
+            <button style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, color: '#fff', background: '#0D1B2A', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Join Free</button>
+          </a>
         </div>
-        <div className="hamburger" style={{display: 'none', alignItems: 'center', gap: '12px'}}>
-          <a href="/login" style={{fontSize: '14px', color: '#006aff', textDecoration: 'none', fontWeight: 500}}>Sign In</a>
-          <details style={{position: 'relative'}}>
-            <summary style={{listStyle: 'none', cursor: 'pointer', padding: '8px', border: '1.5px solid #e5e5e5', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px', width: '36px', alignItems: 'center'}}>
-              <span style={{display: 'block', width: '18px', height: '2px', background: '#444', borderRadius: '2px'}} />
-              <span style={{display: 'block', width: '18px', height: '2px', background: '#444', borderRadius: '2px'}} />
-              <span style={{display: 'block', width: '18px', height: '2px', background: '#444', borderRadius: '2px'}} />
+        <div className="hamburger" style={{ display: 'none', alignItems: 'center', gap: '12px' }}>
+          <a href="/login" style={{ fontSize: '14px', color: '#006aff', textDecoration: 'none', fontWeight: 500 }}>Sign In</a>
+          <details style={{ position: 'relative' }}>
+            <summary style={{ listStyle: 'none', cursor: 'pointer', padding: '8px', border: '1.5px solid #e5e5e5', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px', width: '36px', alignItems: 'center' }}>
+              <span style={{ display: 'block', width: '18px', height: '2px', background: '#444', borderRadius: '2px' }} />
+              <span style={{ display: 'block', width: '18px', height: '2px', background: '#444', borderRadius: '2px' }} />
+              <span style={{ display: 'block', width: '18px', height: '2px', background: '#444', borderRadius: '2px' }} />
             </summary>
-            <div style={{position: 'absolute', right: 0, top: '48px', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '12px', padding: '8px', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: '2px'}}>
-              <a href="/signup" style={{padding: '10px 14px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, color: '#444', textDecoration: 'none', display: 'block'}}>Catalogue My Home</a>
-              <a href="/explore" style={{padding: '10px 14px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, color: '#444', textDecoration: 'none', display: 'block'}}>Explore</a>
-              <a href="/faq" style={{padding: '10px 14px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, color: '#444', textDecoration: 'none', display: 'block'}}>FAQs</a>
-              <a href="/about" style={{padding: '10px 14px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, color: '#444', textDecoration: 'none', display: 'block'}}>About Us</a>
-              <a href="/contact" style={{padding: '10px 14px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, color: '#444', textDecoration: 'none', display: 'block'}}>Contact</a>
-              <div style={{height: '1px', background: '#f0f0f0', margin: '4px 0'}} />
-              <a href="/signup" style={{padding: '10px 14px', borderRadius: '8px', fontSize: '15px', fontWeight: 700, color: '#006aff', textDecoration: 'none', display: 'block'}}>Join Free →</a>
+            <div style={{ position: 'absolute', right: 0, top: '48px', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '12px', padding: '8px', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {[{label: 'Catalogue My Home', href: '/signup'}, {label: 'Explore', href: '/explore'}, {label: 'FAQs', href: '/faq'}, {label: 'About Us', href: '/about'}, {label: 'Contact', href: '/contact'}].map(link => (
+                <a key={link.label} href={link.href} style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, color: '#444', textDecoration: 'none', display: 'block' }}>{link.label}</a>
+              ))}
+              <div style={{ height: '1px', background: '#f0f0f0', margin: '4px 0' }} />
+              <a href="/signup" style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '15px', fontWeight: 700, color: '#3db85a', textDecoration: 'none', display: 'block' }}>Join Free →</a>
             </div>
           </details>
         </div>
       </nav>
 
       {/* Hero */}
-      <div style={{marginTop: '64px', minHeight: '580px', background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden'}}>
-        <div style={{position: 'absolute', inset: 0, backgroundImage: 'url(https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&q=80)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.4}} />
-        <div style={{position: 'relative', zIndex: 2, textAlign: 'center', padding: '60px 24px', width: '100%', maxWidth: '760px'}}>
-          <h1 style={{fontSize: '58px', fontWeight: 700, color: '#fff', lineHeight: 1.1, marginBottom: '10px', letterSpacing: '-1.5px'}}>
+      <div style={{ marginTop: '64px', minHeight: '580px', background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&q=80)', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.4 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(13,27,42,0.3) 0%, rgba(13,27,42,0.6) 100%)' }} />
+        <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '60px 24px', width: '100%', maxWidth: '760px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 700, color: '#3db85a', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '16px' }}>The Home Intelligence Platform</p>
+          <h1 style={{ fontSize: '58px', fontWeight: 700, color: '#fff', lineHeight: 1.1, marginBottom: '12px', letterSpacing: '-1.5px' }}>
             Your home, fully understood.
           </h1>
-          <p style={{fontSize: '17px', color: 'rgba(255,255,255,0.85)', marginBottom: '32px'}}>
+          <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.7)', marginBottom: '36px', lineHeight: 1.6 }}>
             Catalog every detail. Track every dollar. Discover every possibility.
           </p>
-          <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 32px rgba(0,0,0,0.25)', maxWidth: '680px', margin: '0 auto'}}>
-            <div style={{display: 'flex', borderBottom: '1px solid #e8e8e8', padding: '0 8px', overflowX: 'auto'}}>
+          <div style={{ background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 32px rgba(0,0,0,0.25)', maxWidth: '680px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e8', padding: '0 8px', overflowX: 'auto' }}>
               {['Catalogue My Home', 'Explore Homes', 'Home Value', 'Pro Studio'].map((tab, i) => (
-                <button key={tab} style={{padding: '14px 16px', fontSize: '14px', fontWeight: 500, color: i === 0 ? '#006aff' : '#555', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: i === 0 ? '3px solid #006aff' : '3px solid transparent', marginBottom: '-1px', whiteSpace: 'nowrap'}}>
+                <button key={tab} style={{ padding: '14px 16px', fontSize: '14px', fontWeight: 500, color: i === 0 ? '#006aff' : '#555', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: i === 0 ? '3px solid #006aff' : '3px solid transparent', marginBottom: '-1px', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
                   {tab}
                 </button>
               ))}
             </div>
-            <div style={{display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '10px'}}>
-              <span style={{fontSize: '18px', color: '#bbb'}}>📍</span>
-              <input type="text" placeholder="Enter your address, city, or ZIP code" style={{flex: 1, border: 'none', outline: 'none', fontSize: '16px', color: '#1a1a1a', fontFamily: 'inherit', minWidth: 0}} />
-              <a href="/signup"><button style={{background: '#006aff', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'}}>Get Started</button></a>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', gap: '10px' }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
+                <path d="M9 1.5a5.5 5.5 0 100 11A5.5 5.5 0 009 1.5z" stroke="#bbb" strokeWidth="1.5" fill="none"/>
+                <circle cx="9" cy="7" r="1.5" fill="#bbb"/>
+                <path d="M9 10v2" stroke="#bbb" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <input type="text" placeholder="Enter your address, city, or ZIP code" style={{ flex: 1, border: 'none', outline: 'none', fontSize: '16px', color: '#1a1a1a', fontFamily: 'inherit', minWidth: 0 }} />
+              <a href="/signup">
+                <button style={{ background: '#0D1B2A', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>Get Started</button>
+              </a>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick links */}
-      <div style={{display: 'flex', justifyContent: 'center', gap: '12px', padding: '32px 24px', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0'}}>
-        {[
-          {icon: '🏠', label: 'Catalogue My Home', href: '/signup'},
-          {icon: '📸', label: 'AI Detection', href: '/signup'},
-          {icon: '💰', label: 'Home Value', href: '/signup'},
-          {icon: '🛒', label: 'Shop Materials', href: '/signup'},
-          {icon: '🌍', label: 'Explore Nearby', href: '/explore'},
-          {icon: '👷', label: 'Find a Pro', href: '/signup'},
-        ].map(item => (
-          <a key={item.label} href={item.href} style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px 20px', border: '1.5px solid #e5e5e5', borderRadius: '12px', cursor: 'pointer', minWidth: '110px', textDecoration: 'none'}}>
-            <span style={{fontSize: '26px'}}>{item.icon}</span>
-            <span style={{fontSize: '12px', fontWeight: 500, color: '#333', textAlign: 'center'}}>{item.label}</span>
-          </a>
-        ))}
+      {/* Quick links — dark navy cards */}
+      <div style={{ background: '#f7f9fc', borderBottom: '1px solid #e9edf2', padding: '32px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {[
+            { label: 'Catalogue My Home', category: 'Core', href: '/signup', active: true },
+            { label: 'AI Detection', category: 'AI', href: '/signup', active: false },
+            { label: 'Home Value', category: 'Estimate', href: '/signup', active: false },
+            { label: 'Shop Materials', category: 'Shopping', href: '/signup', active: false },
+            { label: 'Explore Nearby', category: 'Explore', href: '/explore', active: true },
+            { label: 'Find a Pro', category: 'Pro', href: '/signup', active: false },
+          ].map(item => (
+            <a key={item.label} href={item.href} className="quick-card" style={{ opacity: item.active ? 1 : 0.65 }}>
+              <div className="quick-card-shine" />
+              <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '8px' }}>{item.category}</div>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: item.active ? '#fff' : 'rgba(255,255,255,0.7)', lineHeight: 1.3 }}>{item.label}</div>
+              {item.active && <div style={{ marginTop: '12px', fontSize: '12px', fontWeight: 600, color: '#3db85a' }}>→</div>}
+              {!item.active && <div style={{ marginTop: '10px', fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em' }}>COMING SOON</div>}
+            </a>
+          ))}
+        </div>
       </div>
 
       {/* Featured Homes */}
-      <div style={{padding: '56px 32px', maxWidth: '1200px', margin: '0 auto'}}>
-        <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '32px', flexWrap: 'wrap', gap: '12px'}}>
+      <div style={{ padding: '64px 32px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 style={{fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px'}}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#3db85a', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Real Homes</p>
+            <h2 style={{ fontSize: '30px', fontWeight: 700, letterSpacing: '-0.5px', color: '#1a1a2e' }}>
               {featuredHomes.length > 0 ? 'Featured homes on Homagio' : 'Homes people are cataloging'}
             </h2>
-            <p style={{fontSize: '15px', color: '#666', marginTop: '6px'}}>Real homes. Real materials. Real inspiration.</p>
+            <p style={{ fontSize: '15px', color: '#6b7280', marginTop: '6px' }}>Real homes. Real materials. Real inspiration.</p>
           </div>
-          <a href="/explore" style={{fontSize: '14px', color: '#006aff', fontWeight: 500, textDecoration: 'none'}}>View all →</a>
+          <a href="/explore" style={{ fontSize: '14px', color: '#3db85a', fontWeight: 600, textDecoration: 'none' }}>View all →</a>
         </div>
 
         {featuredHomes.length > 0 ? (
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px'}}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
             {featuredHomes.map((home: any) => (
-              <a key={home.id} href={`/explore/${home.id}`} style={{textDecoration: 'none', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e5e5', background: '#fff', display: 'block'}}>
-                <div style={{position: 'relative', height: '220px', overflow: 'hidden', background: '#0D1B2A'}}>
+              <a key={home.id} href={`/explore/${home.id}`} className="home-card">
+                <div style={{ position: 'relative', height: '220px', overflow: 'hidden', background: '#0D1B2A' }}>
                   {home.photo_url
-                    ? <img src={home.photo_url} alt={home.name || home.address} style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}} />
-                    : <div style={{width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', opacity: 0.4}}>🏠</div>}
-                  <div style={{position: 'absolute', top: '12px', left: '12px', background: '#006aff', color: '#fff', fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '6px'}}>On Homagio</div>
+                    ? <img src={home.photo_url} alt={home.name || home.address} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" opacity="0.2">
+                          <path d="M6 25L26 7l20 18V47a2 2 0 01-2 2H8a2 2 0 01-2-2V25z" stroke="#fff" strokeWidth="2" fill="none"/>
+                          <path d="M19 49V35h14v14" stroke="#fff" strokeWidth="2" fill="none"/>
+                        </svg>
+                      </div>
+                    )}
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', background: '#3db85a', color: '#fff', fontSize: '10px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', letterSpacing: '0.04em' }}>ON HOMAGIO</div>
                 </div>
-                <div style={{padding: '16px'}}>
-                  <div style={{fontSize: '17px', fontWeight: 700, color: '#1a1a1a', marginBottom: '2px'}}>{home.name || home.address}</div>
-                  {home.name && <div style={{fontSize: '13px', color: '#888', marginBottom: '4px'}}>{home.address}</div>}
-                  <div style={{fontSize: '13px', color: '#888', marginBottom: '10px'}}>{home.city}, {home.state} {home.zip}</div>
-                  <div style={{display: 'flex', gap: '12px', paddingTop: '10px', borderTop: '1px solid #f0f0f0', flexWrap: 'wrap'}}>
-                    {home.bedrooms && <span style={{fontSize: '12px', color: '#555'}}>🛏️ {home.bedrooms} beds</span>}
-                    {home.bathrooms && <span style={{fontSize: '12px', color: '#555'}}>🛁 {home.bathrooms} baths</span>}
-                    {home.square_feet && <span style={{fontSize: '12px', color: '#555'}}>📐 {home.square_feet.toLocaleString()} sqft</span>}
-                    {home.year_built && <span style={{fontSize: '12px', color: '#555'}}>📅 {home.year_built}</span>}
+                <div style={{ padding: '18px 20px' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px' }}>{home.name || home.address}</div>
+                  {home.name && <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '3px' }}>{home.address}</div>}
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>{home.city}, {home.state} {home.zip}</div>
+                  <div style={{ display: 'flex', gap: '12px', paddingTop: '12px', borderTop: '1px solid #f3f4f6', flexWrap: 'wrap' }}>
+                    {home.bedrooms && <span style={{ fontSize: '11px', color: '#6b7280' }}>{home.bedrooms} beds</span>}
+                    {home.bathrooms && <span style={{ fontSize: '11px', color: '#6b7280' }}>{home.bathrooms} baths</span>}
+                    {home.square_feet && <span style={{ fontSize: '11px', color: '#6b7280' }}>{home.square_feet.toLocaleString()} sqft</span>}
+                    {home.year_built && <span style={{ fontSize: '11px', color: '#6b7280' }}>Built {home.year_built}</span>}
                   </div>
                 </div>
               </a>
             ))}
           </div>
         ) : (
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px'}}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
             {[
-              {img: 'photo-1568605114967-8130f3a36994', addr: '2847 Elmwood Drive', city: 'Nashville, TN 37215', beds: 4, baths: 3, sqft: '2,840'},
-              {img: 'photo-1570129477492-45c003edd2be', addr: '1140 Sycamore Lane', city: 'Franklin, TN 37064', beds: 3, baths: 2, sqft: '2,210'},
-              {img: 'photo-1625602812206-5ec545ca1231', addr: '904 Riverside Blvd', city: 'Brentwood, TN 37027', beds: 5, baths: 4, sqft: '4,100'},
+              { img: 'photo-1568605114967-8130f3a36994', addr: '2847 Elmwood Drive', city: 'Nashville, TN 37215', beds: 4, baths: 3, sqft: '2,840' },
+              { img: 'photo-1570129477492-45c003edd2be', addr: '1140 Sycamore Lane', city: 'Franklin, TN 37064', beds: 3, baths: 2, sqft: '2,210' },
+              { img: 'photo-1625602812206-5ec545ca1231', addr: '904 Riverside Blvd', city: 'Brentwood, TN 37027', beds: 5, baths: 4, sqft: '4,100' },
             ].map(home => (
-              <div key={home.addr} style={{borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e5e5', background: '#fff'}}>
-                <div style={{width: '100%', height: '220px', backgroundImage: `url(https://images.unsplash.com/${home.img}?w=600&q=75)`, backgroundSize: 'cover', backgroundPosition: 'center'}} />
-                <div style={{padding: '16px'}}>
-                  <div style={{fontSize: '17px', fontWeight: 700, marginBottom: '4px'}}>{home.addr}</div>
-                  <div style={{fontSize: '13px', color: '#888', marginBottom: '10px'}}>{home.city}</div>
-                  <div style={{display: 'flex', gap: '12px', paddingTop: '10px', borderTop: '1px solid #f0f0f0'}}>
-                    <span style={{fontSize: '12px', color: '#555'}}>🛏️ {home.beds}</span>
-                    <span style={{fontSize: '12px', color: '#555'}}>🛁 {home.baths}</span>
-                    <span style={{fontSize: '12px', color: '#555'}}>📐 {home.sqft} sqft</span>
+              <div key={home.addr} style={{ borderRadius: '16px', overflow: 'hidden', border: '1.5px solid #e9edf2', background: '#fff' }}>
+                <div style={{ width: '100%', height: '220px', backgroundImage: `url(https://images.unsplash.com/${home.img}?w=600&q=75)`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                <div style={{ padding: '18px 20px' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px' }}>{home.addr}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>{home.city}</div>
+                  <div style={{ display: 'flex', gap: '12px', paddingTop: '12px', borderTop: '1px solid #f3f4f6' }}>
+                    <span style={{ fontSize: '11px', color: '#6b7280' }}>{home.beds} beds</span>
+                    <span style={{ fontSize: '11px', color: '#6b7280' }}>{home.baths} baths</span>
+                    <span style={{ fontSize: '11px', color: '#6b7280' }}>{home.sqft} sqft</span>
                   </div>
                 </div>
               </div>
@@ -199,80 +260,94 @@ export default async function Home() {
       </div>
 
       {/* Stats */}
-      <div style={{background: '#f8f8f8', borderTop: '1px solid #efefef', borderBottom: '1px solid #efefef', padding: '28px 32px'}}>
-        <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '48px', flexWrap: 'wrap'}}>
+      <div style={{ background: '#0D1B2A', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '40px 32px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(61,184,90,0.4), transparent)' }} />
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '64px', flexWrap: 'wrap' }}>
           {[
-            {n: homesCount, l: 'Homes cataloged'},
-            {n: roomsCount, l: 'Rooms tracked'},
-            {n: materialsCount, l: 'Materials cataloged'},
-            {n: '4.9★', l: 'User satisfaction'},
+            { n: homesCount, l: 'Homes cataloged' },
+            { n: roomsCount, l: 'Rooms tracked' },
+            { n: materialsCount, l: 'Materials cataloged' },
+            { n: '4.9', l: 'User satisfaction' },
           ].map(stat => (
-            <div key={stat.l} style={{textAlign: 'center'}}>
-              <div style={{fontSize: '28px', fontWeight: 700}}>{stat.n}</div>
-              <div style={{fontSize: '13px', color: '#888', marginTop: '2px'}}>{stat.l}</div>
+            <div key={stat.l} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', fontWeight: 700, color: '#fff', letterSpacing: '-0.5px' }}>{stat.n}</div>
+              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginTop: '4px', fontWeight: 500 }}>{stat.l}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Features */}
-      <div style={{padding: '56px 32px', maxWidth: '1200px', margin: '0 auto'}}>
-        <div style={{textAlign: 'center', marginBottom: '48px'}}>
-          <h2 style={{fontSize: '32px', fontWeight: 700, letterSpacing: '-0.5px'}}>Everything your home needs, in one place</h2>
-          <p style={{fontSize: '15px', color: '#666', marginTop: '8px'}}>From AI-powered material detection to renovation budgeting.</p>
+      <div style={{ padding: '72px 32px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '52px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#3db85a', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>Platform</p>
+          <h2 style={{ fontSize: '34px', fontWeight: 700, letterSpacing: '-0.5px', color: '#1a1a2e', marginBottom: '10px' }}>Everything your home needs, in one place</h2>
+          <p style={{ fontSize: '15px', color: '#6b7280' }}>From AI-powered material detection to renovation budgeting.</p>
         </div>
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1px', border: '1px solid #e5e5e5', borderRadius: '12px', overflow: 'hidden', background: '#e5e5e5'}}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', overflow: 'hidden', background: 'rgba(255,255,255,0.04)' }}>
           {[
-            {icon: '📸', title: 'AI Material Detection', desc: 'Upload a photo. Our AI identifies materials, finishes, and fixtures instantly.'},
-            {icon: '🏠', title: 'Home Catalog System', desc: 'Build a complete record of every surface, system, and upgrade in your home.'},
-            {icon: '🛒', title: 'Smart Shopping Lists', desc: 'One click generates a shoppable list with direct purchase links for every material.'},
-            {icon: '💰', title: 'Budget & ROI Tracker', desc: 'Track renovation costs against estimated home value increases.'},
-            {icon: '🌍', title: 'Explore Nearby Homes', desc: 'Discover how neighbors designed their homes and get inspired by real materials.'},
-            {icon: '🔮', title: 'Digital Twin Technology', desc: 'Create a living digital replica of your home — always up to date, always yours.'},
+            { category: 'AI', title: 'AI Material Detection', desc: 'Upload a photo. Our AI identifies materials, finishes, and fixtures instantly.', svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="#3db85a" strokeWidth="1.5" fill="none"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M5.64 18.36l1.41-1.41M16.95 7.05l1.41-1.41" stroke="#3db85a" strokeWidth="1.5" strokeLinecap="round"/></svg> },
+            { category: 'Core', title: 'Home Catalog System', desc: 'Build a complete record of every surface, system, and upgrade in your home.', svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 11L12 3l9 8v9a1 1 0 01-1 1H4a1 1 0 01-1-1v-9z" stroke="#3db85a" strokeWidth="1.5" fill="none"/><path d="M9 21v-6h6v6" stroke="#3db85a" strokeWidth="1.5" fill="none"/></svg> },
+            { category: 'Shopping', title: 'Smart Shopping Lists', desc: 'One click generates a shoppable list with direct purchase links for every material.', svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="#3db85a" strokeWidth="1.5" fill="none"/><path d="M3 6h18M16 10a4 4 0 01-8 0" stroke="#3db85a" strokeWidth="1.5"/></svg> },
+            { category: 'Finance', title: 'Budget & ROI Tracker', desc: 'Track renovation costs against estimated home value increases.', svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#3db85a" strokeWidth="1.5" fill="none"/><path d="M12 7v1.5M12 15.5V17M9.5 14c0 1 .67 1.5 1.5 1.5h2a1.5 1.5 0 000-3H11a1.5 1.5 0 010-3h2A1.5 1.5 0 0114.5 11" stroke="#3db85a" strokeWidth="1.5" strokeLinecap="round"/></svg> },
+            { category: 'Explore', title: 'Explore Nearby Homes', desc: 'Discover how neighbors designed their homes and get inspired by real materials.', svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#3db85a" strokeWidth="1.5" fill="none"/><path d="M12 3c0 0-4 4-4 9s4 9 4 9M12 3c0 0 4 4 4 9s-4 9-4 9M3 12h18" stroke="#3db85a" strokeWidth="1.5"/></svg> },
+            { category: 'Technology', title: 'Digital Twin Technology', desc: 'Create a living digital replica of your home — always up to date, always yours.', svg: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#3db85a" strokeWidth="1.5" fill="none"/><path d="M3 9h18M9 9v12" stroke="#3db85a" strokeWidth="1.5"/></svg> },
           ].map(feat => (
-            <div key={feat.title} style={{background: '#fff', padding: '36px 28px'}}>
-              <div style={{fontSize: '28px', marginBottom: '14px'}}>{feat.icon}</div>
-              <div style={{fontSize: '17px', fontWeight: 600, marginBottom: '8px'}}>{feat.title}</div>
-              <div style={{fontSize: '14px', color: '#666', lineHeight: 1.65}}>{feat.desc}</div>
+            <div key={feat.title} className="feature-card">
+              <div className="feature-card-shine" />
+              <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '16px' }}>{feat.category}</div>
+              <div style={{ marginBottom: '14px' }}>{feat.svg}</div>
+              <div style={{ fontSize: '17px', fontWeight: 600, color: '#fff', marginBottom: '8px', letterSpacing: '-0.2px' }}>{feat.title}</div>
+              <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>{feat.desc}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* CTA */}
-      <div style={{background: '#0D1B2A', padding: '80px 32px', textAlign: 'center'}}>
-        <h2 style={{fontSize: '36px', fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: '16px'}}>
+      <div style={{ background: '#0D1B2A', padding: '80px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(61,184,90,0.5), transparent)' }} />
+        <p style={{ fontSize: '13px', fontWeight: 700, color: '#3db85a', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '16px' }}>Get Started Free</p>
+        <h2 style={{ fontSize: '38px', fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', marginBottom: '16px', lineHeight: 1.2 }}>
           Start building your home's digital twin today.
         </h2>
-        <p style={{fontSize: '16px', color: 'rgba(255,255,255,0.6)', marginBottom: '36px'}}>
+        <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.5)', marginBottom: '40px', maxWidth: '480px', margin: '0 auto 40px', lineHeight: 1.7 }}>
           Join homeowners who finally understand every inch of where they live.
         </p>
-        <div style={{display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap'}}>
-          <a href="/signup"><button style={{background: '#006aff', color: '#fff', border: 'none', padding: '16px 40px', borderRadius: '8px', fontSize: '16px', fontWeight: 600, cursor: 'pointer'}}>Catalogue My Home — It's Free</button></a>
-          <a href="/login"><button style={{background: 'transparent', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', padding: '16px 40px', borderRadius: '8px', fontSize: '16px', fontWeight: 400, cursor: 'pointer'}}>Sign In</button></a>
+        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href="/signup">
+            <button style={{ background: '#3db85a', color: '#fff', border: 'none', padding: '16px 40px', borderRadius: '10px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#34a34f')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#3db85a')}
+            >Catalogue My Home — It's Free</button>
+          </a>
+          <a href="/explore">
+            <button style={{ background: 'transparent', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)', padding: '16px 40px', borderRadius: '10px', fontSize: '16px', fontWeight: 400, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Explore Homes
+            </button>
+          </a>
         </div>
       </div>
 
       {/* Footer */}
-      <div style={{background: '#fff', borderTop: '1px solid #e5e5e5', padding: '40px 32px'}}>
-        <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px'}}>
-          <div style={{fontSize: '22px', fontWeight: 700, color: '#006aff', letterSpacing: '-0.5px'}}>
-            hom<span style={{color: '#1a1a1a'}}>agio</span>
-          </div>
-          <div style={{display: 'flex', gap: '24px', flexWrap: 'wrap'}}>
+      <div style={{ background: '#fff', borderTop: '1px solid #e5e5e5', padding: '40px 32px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px' }}>
+          <a href="/" style={{ textDecoration: 'none' }}>
+            <img src={LOGO_URL} alt="homagio" style={{ height: '48px', width: 'auto' }} />
+          </a>
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
             {[
-              {label: 'Catalogue', href: '/signup'},
-              {label: 'Explore', href: '/explore'},
-              {label: 'FAQs', href: '/faq'},
-              {label: 'About Us', href: '/about'},
-              {label: 'Contact', href: '/contact'},
-              {label: 'Privacy', href: '#'},
-              {label: 'Terms', href: '#'},
+              { label: 'Catalogue', href: '/signup' }, { label: 'Explore', href: '/explore' },
+              { label: 'FAQs', href: '/faq' }, { label: 'About Us', href: '/about' },
+              { label: 'Contact', href: '/contact' }, { label: 'Privacy', href: '#' }, { label: 'Terms', href: '#' },
             ].map(link => (
-              <a key={link.label} href={link.href} style={{fontSize: '13px', color: '#666', textDecoration: 'none'}}>{link.label}</a>
+              <a key={link.label} href={link.href} style={{ fontSize: '13px', color: '#6b7280', textDecoration: 'none', transition: 'color 0.12s' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#3db85a')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#6b7280')}
+              >{link.label}</a>
             ))}
           </div>
-          <div style={{fontSize: '12px', color: '#aaa'}}>© 2025 Homagio, Inc. All rights reserved.</div>
+          <div style={{ fontSize: '12px', color: '#aaa' }}>© 2025 Homagio, Inc. All rights reserved.</div>
         </div>
       </div>
     </main>
