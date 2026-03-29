@@ -2,43 +2,124 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const STEPS = ['Address', 'Details']
 
-async function geocodeAddress(address: string, city: string, state: string, zip: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const token = 'pk.eyJ1IjoidGhlNWJsYWlycyIsImEiOiJjbW5hdmpheXAwbmZsMnFxMWo2bjBpcjdmIn0.Px8zSq6gn-Z3geHSYRB9LA'
-    const query = encodeURIComponent(`${address}, ${city}, ${state} ${zip}`)
-    const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${token}&limit=1&country=US`
-    )
-    console.log('Geocoding response status:', res.status)
-    if (!res.ok) { console.warn('Geocoding response not ok:', res.status); return null }
-    const data = await res.json()
-    console.log('Geocoding data:', data)
-    if (!data.features || data.features.length === 0) { console.warn('No geocoding results'); return null }
-    const [lng, lat] = data.features[0].center
-    console.log('Geocoded successfully:', { lat, lng })
-    return { lat, lng }
-  } catch (err) {
-    console.warn('Geocoding failed:', err)
-    return null
-  }
+interface Suggestion {
+  place_name: string
+  center: [number, number] // [lng, lat]
+  context: { id: string; text: string }[]
+  text: string
 }
 
 export default function AddHome() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
   const [form, setForm] = useState({
     name: '', address: '', city: '', state: '', zip: '',
     year_built: '', square_feet: '', bedrooms: '', bathrooms: '',
   })
 
+  // Lat/lng captured when user selects an autocomplete suggestion
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const suggestTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleAddressInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setForm(prev => ({ ...prev, address: value }))
+    setCoords(null) // reset coords if user edits address manually
+
+    if (suggestTimeout.current) clearTimeout(suggestTimeout.current)
+
+    if (value.length < 3) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    suggestTimeout.current = setTimeout(async () => {
+      setSuggestLoading(true)
+      try {
+        const res = await fetch(`/api/geocode?mode=suggest&q=${encodeURIComponent(value)}`)
+        const data = await res.json()
+        if (data.features && data.features.length > 0) {
+          setSuggestions(data.features)
+          setShowSuggestions(true)
+        } else {
+          setSuggestions([])
+          setShowSuggestions(false)
+        }
+      } catch {
+        setSuggestions([])
+      } finally {
+        setSuggestLoading(false)
+      }
+    }, 300) // debounce 300ms
+  }
+
+  const handleSelectSuggestion = (suggestion: Suggestion) => {
+    // Extract address components from Mapbox context
+    const streetAddress = suggestion.text
+      ? suggestion.place_name.split(',')[0]
+      : suggestion.place_name
+
+    let city = ''
+    let state = ''
+    let zip = ''
+
+    suggestion.context?.forEach((ctx) => {
+      if (ctx.id.startsWith('place')) city = ctx.text
+      if (ctx.id.startsWith('region')) {
+        // Mapbox returns full state name — try to get abbreviation from short_code
+        const parts = ctx.id.split('.')
+        state = parts.length > 1 ? ctx.text : ctx.text
+      }
+      if (ctx.id.startsWith('postcode')) zip = ctx.text
+    })
+
+    // Get state abbreviation from place_name (e.g. "..., TN ...")
+    const stateMatch = suggestion.place_name.match(/,\s([A-Z]{2})\s\d{5}/)
+    if (stateMatch) state = stateMatch[1]
+
+    setForm(prev => ({
+      ...prev,
+      address: streetAddress,
+      city,
+      state,
+      zip,
+    }))
+
+    // Capture lat/lng from the suggestion directly
+    const [lng, lat] = suggestion.center
+    setCoords({ lat, lng })
+
+    setSuggestions([])
+    setShowSuggestions(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,8 +131,21 @@ export default function AddHome() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { window.location.href = '/login'; return }
 
-    // Geocode the address — silently skip if it fails
-    const coords = await geocodeAddress(form.address, form.city, form.state, form.zip)
+    // If user didn't select from autocomplete, geocode the address via API route
+    let finalCoords = coords
+    if (!finalCoords) {
+      try {
+        const fullAddress = `${form.address}, ${form.city}, ${form.state} ${form.zip}`
+        const res = await fetch(`/api/geocode?mode=geocode&q=${encodeURIComponent(fullAddress)}`)
+        const data = await res.json()
+        if (data.features && data.features.length > 0) {
+          const [lng, lat] = data.features[0].center
+          finalCoords = { lat, lng }
+        }
+      } catch {
+        // silently skip — home saves without coords
+      }
+    }
 
     const { data, error: insertError } = await supabase.from('homes').insert({
       user_id: session.user.id,
@@ -64,8 +158,8 @@ export default function AddHome() {
       square_feet: form.square_feet ? parseInt(form.square_feet) : null,
       bedrooms: form.bedrooms ? parseInt(form.bedrooms) : null,
       bathrooms: form.bathrooms ? parseFloat(form.bathrooms) : null,
-      lat: coords?.lat ?? null,
-      lng: coords?.lng ?? null,
+      lat: finalCoords?.lat ?? null,
+      lng: finalCoords?.lng ?? null,
     }).select().single()
 
     if (insertError) { setError(insertError.message); setLoading(false); return }
@@ -147,6 +241,16 @@ export default function AddHome() {
           transition: border-color 0.15s, background 0.15s;
         }
         .btn-secondary:hover { background: #f9fafb; border-color: #d1d5db; }
+        .suggestion-item {
+          padding: 10px 14px;
+          cursor: pointer;
+          font-size: 14px;
+          color: #1a1a2e;
+          border-bottom: 1px solid #f3f4f6;
+          transition: background 0.1s;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #f0f6ff; }
       `}</style>
 
       <div style={{minHeight: '100vh', background: '#f7f9fc', fontFamily: "'DM Sans', system-ui, sans-serif"}}>
@@ -227,10 +331,62 @@ export default function AddHome() {
                     <label className="label">Home Nickname <span className="optional">(optional)</span></label>
                     <input className="input-field" type="text" name="name" value={form.name} onChange={handleChange} placeholder="e.g. The Blair House" />
                   </div>
-                  <div>
-                    <label className="label">Street Address <span style={{color: '#ef4444'}}>*</span></label>
-                    <input className="input-field" type="text" name="address" value={form.address} onChange={handleChange} placeholder="123 Main St" required />
+
+                  {/* Address field with autocomplete */}
+                  <div ref={wrapperRef} style={{position: 'relative'}}>
+                    <label className="label">
+                      Street Address <span style={{color: '#ef4444'}}>*</span>
+                    </label>
+                    <div style={{position: 'relative'}}>
+                      <input
+                        className="input-field"
+                        type="text"
+                        name="address"
+                        value={form.address}
+                        onChange={handleAddressInput}
+                        onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                        placeholder="Start typing your address..."
+                        required
+                        autoComplete="off"
+                      />
+                      {suggestLoading && (
+                        <div style={{position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#9ca3af'}}>
+                          ...
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Suggestions dropdown */}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: '#fff',
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '10px',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                        zIndex: 50,
+                        marginTop: '4px',
+                        overflow: 'hidden',
+                      }}>
+                        {suggestions.map((s, i) => (
+                          <div
+                            key={i}
+                            className="suggestion-item"
+                            onMouseDown={() => handleSelectSuggestion(s)}
+                          >
+                            <div style={{fontWeight: 500}}>{s.place_name.split(',')[0]}</div>
+                            <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '2px'}}>
+                              {s.place_name.split(',').slice(1).join(',').trim()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
                   <div>
                     <label className="label">City <span style={{color: '#ef4444'}}>*</span></label>
                     <input className="input-field" type="text" name="city" value={form.city} onChange={handleChange} placeholder="Nashville" required />
