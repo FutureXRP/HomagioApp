@@ -44,6 +44,7 @@ Two user types:
 | Email          | Resend (welcome email working)          |
 | Image Storage  | Cloudinary (✅ working)                 |
 | Maps           | Mapbox GL JS v3.3.0 (✅ working)        |
+| Geocoding      | Mapbox Geocoding API (✅ working)       |
 | AI Detection   | OpenAI Vision API (not yet set up)      |
 | Payments       | Stripe + Stripe Connect (not yet set up)|
 | Affiliate Mgmt | Skimlinks or custom (not yet set up)    |
@@ -58,7 +59,9 @@ Two user types:
 - NEXT_PUBLIC_SUPABASE_ANON_KEY
 - SUPABASE_SECRET_KEY
 - RESEND_API_KEY
+- RESEND_FROM_EMAIL
 - NEXT_PUBLIC_MAPBOX_TOKEN
+- MAPBOX_TOKEN (server-side, same value — env var doesn't load reliably, token is hardcoded in route.ts)
 
 ## ☁️ Cloudinary
 - Cloud Name: dlb0guicc
@@ -69,12 +72,21 @@ Two user types:
 ## 🗺️ Mapbox
 - Token stored in NEXT_PUBLIC_MAPBOX_TOKEN in Vercel
 - Also hardcoded in ExploreClient.tsx (public pk. token — safe to commit)
+- Also hardcoded in src/app/api/geocode/route.ts (same public token — safe to commit)
 - Token name in Mapbox dashboard: "Homagio App"
-- Allowed URL: https://homagio-app.vercel.app
+- Allowed URL: https://homagio-app.vercel.app (cannot remove — needed for map)
 - Default map center: Tulsa, OK [-95.9928, 36.1540], zoom 11
 - Use default Mapbox marker with color option — NOT custom HTML elements (causes pin jumping bug)
 - Homes need lat + lng columns populated in Supabase to show as pins
 - The Blair House: lat=36.0868, lng=-96.0639
+
+## 📍 Geocoding
+- API route at src/app/api/geocode/route.ts handles both suggest and geocode modes
+- Token hardcoded in route.ts (NEXT_PUBLIC_ vars don't load server-side reliably; MAPBOX_TOKEN env var also tried but failed — hardcode is the working solution)
+- Mapbox token has URL restriction (homagio-app.vercel.app) — this blocks server-side geocoding API calls
+- WORKAROUND: Token is hardcoded directly in route.ts since it's a public token (same as ExploreClient.tsx)
+- Address autocomplete UI is built in Add Home form but blocked by Mapbox URL token restriction
+- TODO: Create a second unrestricted Mapbox token for server-side geocoding, store as MAPBOX_GEOCODE_TOKEN
 
 ---
 
@@ -83,13 +95,14 @@ Two user types:
 - **profiles** (id, email, full_name, avatar_url, role, subscription_tier, created_at)
 - **homes** (id, user_id, name, address, city, state, zip, lat, lng, year_built, square_feet, bedrooms, bathrooms, value_estimate, photo_url, is_public, created_at)
 - **rooms** (id, home_id, name, type, floor, notes, photo_url, created_at)
-- **materials** (id, room_id, home_id, name, brand, color, finish, notes, cost, purchase_url, affiliate_url, photo_url, ai_detected, ai_confidence, created_at)
+- **materials** (id, room_id, home_id, name, brand, color, finish, category, notes, cost, purchase_url, affiliate_url, photo_url, ai_detected, ai_confidence, created_at)
 - **photos** (id, home_id, room_id, url, ai_tags, ai_confidence, created_at)
 - **budgets** (id, home_id, room_id, project_name, estimated, actual, status, created_at)
 - **saved_homes** (id, user_id, home_id, created_at)
 - **home_timeline** (id, home_id, event_type, description, cost, event_date, created_at)
 - Row Level Security enabled on all tables
 - Auto profile creation trigger on new user signup
+- NOTE: materials.category column was missing — added via SQL: `ALTER TABLE materials ADD COLUMN IF NOT EXISTS category text;`
 
 ---
 
@@ -107,7 +120,7 @@ HomagioApp/
 │   │   ├── faq/
 │   │   │   └── page.tsx                                  ✅ FAQ accordion (10 questions, client component)
 │   │   ├── contact/
-│   │   │   └── page.tsx                                  ✅ Contact form UI (shows success, no email yet)
+│   │   │   └── page.tsx                                  ✅ Contact form — wired to /api/send-contact, shows success state
 │   │   ├── explore/
 │   │   │   ├── page.tsx                                  ✅ server component, fetches public homes
 │   │   │   ├── ExploreClient.tsx                         ✅ Mapbox map, left panel list, sidebar panel on pin click
@@ -124,7 +137,7 @@ HomagioApp/
 │   │   │       ├── page.tsx                              ✅ server component
 │   │   │       └── HomesDashboardClient.tsx              ✅ homes grid, stats, add home button
 │   │   ├── homes/
-│   │   │   ├── add/page.tsx                              ✅ 2-step form, auto-creates Exterior room
+│   │   │   ├── add/page.tsx                              ✅ 2-step form, geocoding on submit, address autocomplete UI built (dropdown blocked by Mapbox token URL restriction)
 │   │   │   └── [id]/
 │   │   │       ├── page.tsx                              ✅ server component
 │   │   │       ├── HomeDetailClient.tsx                  ✅ home photo upload, public/private toggle, rooms grid, recent materials
@@ -144,7 +157,9 @@ HomagioApp/
 │   │   ├── loading/
 │   │   │   └── page.tsx                                  ✅ simple redirect to /dashboard
 │   │   ├── api/
-│   │   │   └── send-welcome/route.ts                     ✅ welcome email via Resend on signup
+│   │   │   ├── send-welcome/route.ts                     ✅ welcome email via Resend on signup
+│   │   │   ├── send-contact/route.ts                     ✅ contact form emails via Resend (2 emails: notify you + confirm to sender)
+│   │   │   └── geocode/route.ts                          ✅ Mapbox geocoding + autosuggest, token hardcoded (public token)
 │   │   └── auth/
 │   │       └── callback/route.ts                         ✅ OAuth code exchange, redirects to /dashboard
 │   ├── middleware.ts                                      ✅ protects /dashboard + /homes, public routes bypass entirely
@@ -236,62 +251,42 @@ Clicking the homagio logo from the dashboard to `/` sometimes logs the user out.
 
 ### ✅ Phase 2a — Photo Upload Complete
 - [x] Cloudinary account connected (cloud: dlb0guicc, preset: HomagioApp)
-- [x] Home exterior photo upload — click-to-upload on home detail page, saves to homes.photo_url
-- [x] Room hero photo upload — click-to-upload on room detail page, saves to rooms.photo_url
-- [x] Material photo upload — upload area on add + edit material forms, saves to materials.photo_url
+- [x] Home exterior photo upload
+- [x] Room hero photo upload
+- [x] Material photo upload
 - [x] Room cards on home detail page show photo thumbnail if available
 - [x] Material rows show 52x52 photo thumbnail if available
-- [x] Photo count tracked in stats on home and room pages
-- [x] All photos stored in Cloudinary under homagio/homes, homagio/rooms, homagio/materials folders
 
 ### ✅ Phase 2b — Public/Private Toggle Complete
 - [x] is_public column on homes table
-- [x] Toggle UI on home detail page (🔒 Private / 🌍 Public)
-- [x] Toggling updates homes.is_public in Supabase in real time
-- [x] Public homes appear on landing page featured section
-- [x] Public homes appear in Explore map and list
-- [x] The Blair House (7106 W 51st, Tulsa OK) set to public as first featured home
+- [x] Toggle UI on home detail page
+- [x] Public homes appear on landing page and Explore map
 
 ### ✅ Phase 3a — Explore + Map Complete
 - [x] Mapbox GL JS v3.3.0 loaded dynamically in ExploreClient
-- [x] Mapbox token: stored in Vercel env + hardcoded in ExploreClient (public token)
 - [x] /explore page — full screen map with left panel home list
-- [x] Left panel shows all public homes with photo thumbnail, name, city, bed/bath/sqft
-- [x] Map pins use default Mapbox marker (blue) — NOT custom HTML (caused pin jumping)
-- [x] Click pin → sidebar panel slides in with photo, details, "View Full Home Profile" button
-- [x] Click home in left panel → selects it, flies map to location if coords available
-- [x] /explore/[homeId] — public home profile page
-- [x] Hero photo full width, home name overlaid on gradient
-- [x] Stats row: rooms, materials, value, photos
-- [x] Rooms section — click room to expand, shows full room photo uncropped
-- [x] Materials inside each room — click to expand inline, shows full photo + all details + buy links
-- [x] "Catalog My Home Free" CTA throughout public pages
-- [x] Homes need lat + lng in Supabase to pin on map (Blair House: 36.0868, -96.0639)
+- [x] Map pins, sidebar panel, public home profile page all working
 
 ### ✅ Phase 3b — Landing Page + Nav Complete
-- [x] Nav links: Catalogue, Explore, FAQs, About Us, Contact
-- [x] Desktop: full nav bar with Sign In + Join Free buttons
-- [x] Mobile: hamburger menu using HTML details/summary (no JS needed)
-- [x] Featured homes section pulls real public homes from Supabase via direct REST fetch
-- [x] Featured home cards link to /explore/[homeId]
-- [x] "View all →" links to /explore
-- [x] Stats section shows real counts (homes, rooms, materials) from Supabase
-- [x] Footer links updated: Catalogue, Explore, FAQs, About Us, Contact, Privacy, Terms
-- [x] Landing page uses direct fetch() not createClient() to avoid session interference
+- [x] Full nav, mobile hamburger menu, featured homes, stats section, footer
 
 ### ✅ Phase 3c — Public Pages Complete
-- [x] /faq — accordion FAQ page, 10 questions covering product, pricing, privacy, what's coming
-- [x] /about — About Us page with Blair House origin story, mission, what's coming section
-- [x] /contact — Contact form with name, email, subject dropdown, message, success state
-- [x] Contact form does NOT send email yet — shows success UI only (wire up Resend next)
-- [x] All three pages added as public routes in middleware
-- [x] All three pages have consistent nav with logo + explore/faq/about/contact links
+- [x] /faq, /about, /contact pages all built
 
-### 📋 Phase 3d — Next Up
-- [ ] Wire contact form to actually send email via Resend API
+### ✅ Phase 3d — Geocoding + Contact Email Complete
+- [x] Contact form wired to Resend API via /api/send-contact
+- [x] Two emails on submit: notification to owner + confirmation to sender
+- [x] Contact form emails blocked until custom domain added to Resend (free tier limitation)
+- [x] Geocoding API route at /api/geocode (suggest + geocode modes)
+- [x] Add Home form geocodes address on submit → saves lat/lng to homes table
+- [x] Address autocomplete UI built — dropdown blocked by Mapbox token URL restriction
+- [x] Fixed missing materials.category column in Supabase
+
+### 📋 Phase 3e — Remaining Nice-to-Haves
+- [ ] Fix address autocomplete — create second unrestricted Mapbox token (MAPBOX_GEOCODE_TOKEN)
+- [ ] Wire contact form email — requires custom domain in Resend
 - [ ] Public room pages: /explore/[homeId]/rooms/[roomId]
 - [ ] Public material pages: /explore/[homeId]/rooms/[roomId]/materials/[materialId]
-- [ ] Geocoding — auto-convert home address to lat/lng when home is added (Mapbox geocoding API)
 - [ ] Add "Save this home" / favorites functionality for logged-in users
 
 ### 📋 Phase 4 — Core Product Features
@@ -322,6 +317,7 @@ Clicking the homagio logo from the dashboard to `/` sometimes logs the user out.
 - [ ] Pro badge on public home profiles
 
 ### 📋 Phase 8 — Retention + Growth
+- [ ] Custom domain for Resend (unlocks sending to any email)
 - [ ] Email notifications via Resend (reminders, updates)
 - [ ] Home timeline — log events, renovations, purchases over time
 - [ ] Maintenance reminders — schedule reminders per material/system
@@ -345,12 +341,6 @@ Every "Shop This Material" link routes through Homagio's affiliate links.
 - Option B: 60% homeowner / 40% Homagio
 - Option C: Tiered by subscription — Free: 70/30, Premium: 80/20, Pro: 85/15
 
-**Tech needed:**
-- Skimlinks or VigLink for automatic link conversion
-- Stripe Connect for homeowner payouts
-- Earnings dashboard for homeowners
-- Clear ToS disclosing affiliate relationship
-
 ---
 
 ## ⚠️ Important Notes for Claude
@@ -366,14 +356,19 @@ Every "Shop This Material" link routes through Homagio's affiliate links.
 - **proxy.ts is DELETED** — do not recreate it
 - **Never use custom HTML elements for Mapbox markers** — use `new mapboxgl.Marker({ color: '#006aff' })`
 - **Landing page must use direct REST fetch, NOT createClient()** — prevents session logout bug
-- **Contact form is UI only** — does not send email yet
+- **Contact form emails deferred** — Resend free tier requires custom domain to send to arbitrary emails
+- **NEXT_PUBLIC_ env vars do not load reliably server-side** — hardcode public tokens in server files instead
+- **Mapbox token has URL restriction** — cannot be used unrestricted server-side; hardcode in route.ts is the workaround
 - TypeScript: always use `interface PageProps { params: { id: string } }` for dynamic route server components
+- **Always provide complete file paths** when giving files to commit (e.g. `src/app/api/geocode/route.ts`)
+- **Always deliver code as downloadable files** — not pasted in chat
 
 ## 📧 Email Architecture
 - Provider: Resend (free tier)
 - From address: onboarding@resend.dev (until custom domain set up)
 - Welcome email fires on signup via /api/send-welcome route
-- Contact form email NOT yet wired — TODO next session
+- Contact form emails via /api/send-contact route (2 emails: owner notification + sender confirmation)
+- Contact form email delivery blocked until custom domain added to Resend
 
 ---
 
@@ -385,6 +380,6 @@ Every "Shop This Material" link routes through Homagio's affiliate links.
 
 ---
 
-*Last updated: Session 6 — Explore page with Mapbox map fully working. Public home profiles with expandable rooms and full-size uncropped photos. Landing page nav rebuilt (Catalogue, Explore, FAQs, About Us, Contact) with mobile hamburger menu. FAQ, About, Contact pages built. Featured homes on landing page link to public profiles. All explore links wired throughout app. The Blair House live as first featured home.*
+*Last updated: Session 7 — Contact form wired to Resend API (two emails: owner notification + sender confirmation). Geocoding added to Add Home form via /api/geocode route — new homes auto-get lat/lng saved to Supabase. Address autocomplete UI built but dropdown blocked by Mapbox token URL restriction (TODO: create unrestricted token). Fixed missing materials.category column in Supabase. Established pattern of delivering code as downloadable files with full paths.*
 
-*Next session options: Wire contact form email via Resend, build public room/material pages, add geocoding for map pins, or start budget tracker.*
+*Next session options: Fix address autocomplete with unrestricted Mapbox token, build budget tracker, build public room/material pages, or wire contact form email via custom Resend domain.*
