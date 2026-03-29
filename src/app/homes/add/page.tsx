@@ -7,6 +7,24 @@ import { createClient } from '@/lib/supabase/client'
 
 const STEPS = ['Address', 'Details']
 
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+
+async function geocodeAddress(address: string, city: string, state: string, zip: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const query = encodeURIComponent(`${address}, ${city}, ${state} ${zip}`)
+    const res = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&limit=1&country=US`
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    if (!data.features || data.features.length === 0) return null
+    const [lng, lat] = data.features[0].center
+    return { lat, lng }
+  } catch {
+    return null
+  }
+}
+
 export default function AddHome() {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -29,6 +47,9 @@ export default function AddHome() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { window.location.href = '/login'; return }
 
+    // Geocode the address — silently skip if it fails
+    const coords = await geocodeAddress(form.address, form.city, form.state, form.zip)
+
     const { data, error: insertError } = await supabase.from('homes').insert({
       user_id: session.user.id,
       name: form.name.trim() || null,
@@ -40,6 +61,8 @@ export default function AddHome() {
       square_feet: form.square_feet ? parseInt(form.square_feet) : null,
       bedrooms: form.bedrooms ? parseInt(form.bedrooms) : null,
       bathrooms: form.bathrooms ? parseFloat(form.bathrooms) : null,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
     }).select().single()
 
     if (insertError) { setError(insertError.message); setLoading(false); return }
