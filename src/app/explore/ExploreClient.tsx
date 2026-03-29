@@ -46,24 +46,90 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
         setMapLoaded(true)
         mapRef.current = map
 
+        // Add home pins
         const pinsToAdd = homesWithCoords.length > 0
           ? homesWithCoords
           : homes.length > 0 ? [{ ...homes[0], lat: DEFAULT_CENTER[1], lng: DEFAULT_CENTER[0] }] : []
 
         pinsToAdd.forEach(home => {
-          // Use default Mapbox marker — no custom HTML, no anchor issues
           const marker = new mapboxgl.Marker({ color: '#006aff' })
             .setLngLat([home.lng, home.lat])
             .addTo(map)
 
           marker.getElement().addEventListener('click', () => {
-            // Find the real home (not the fallback with default coords)
             const realHome = homes.find(h => h.id === home.id) || homes[0]
             setSelectedHome(realHome)
             setSidebarOpen(true)
             map.flyTo({ center: [home.lng, home.lat], zoom: 14, duration: 800 })
           })
         })
+
+        // Request user location and add blue dot
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords
+
+              // Create blue dot element
+              const el = document.createElement('div')
+              el.style.cssText = `
+                width: 18px;
+                height: 18px;
+                background: #006aff;
+                border: 3px solid #fff;
+                border-radius: 50%;
+                box-shadow: 0 0 0 3px rgba(0,106,255,0.25);
+              `
+
+              // Add pulsing ring
+              const pulse = document.createElement('div')
+              pulse.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 40px;
+                height: 40px;
+                background: rgba(0,106,255,0.15);
+                border-radius: 50%;
+                animation: pulse-ring 2s ease-out infinite;
+                pointer-events: none;
+              `
+
+              // Add pulse animation style
+              if (!document.getElementById('pulse-style')) {
+                const style = document.createElement('style')
+                style.id = 'pulse-style'
+                style.textContent = `
+                  @keyframes pulse-ring {
+                    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+                    100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+                  }
+                `
+                document.head.appendChild(style)
+              }
+
+              const wrapper = document.createElement('div')
+              wrapper.style.cssText = 'position: relative; width: 18px; height: 18px;'
+              wrapper.appendChild(pulse)
+              wrapper.appendChild(el)
+
+              new mapboxgl.Marker({ element: wrapper, anchor: 'center' })
+                .setLngLat([longitude, latitude])
+                .addTo(map)
+
+              // Fly to user location
+              map.flyTo({
+                center: [longitude, latitude],
+                zoom: 13,
+                duration: 1200,
+              })
+            },
+            () => {
+              // Permission denied or unavailable — stay at default center, no dot
+            }
+          )
+        }
       })
 
       map.on('error', () => setMapError(true))
@@ -118,7 +184,7 @@ export default function ExploreClient({ homes }: { homes: any[] }) {
               <div style={{padding: '48px 24px', textAlign: 'center'}}>
                 <div style={{fontSize: '36px', marginBottom: '12px'}}>🏠</div>
                 <div style={{fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px'}}>No public homes yet</div>
-                <div style={{fontSize: '13px', color: '#9ca3af'}}>Be the first to make your home public.</div>
+                <div style={{fontSize: '12px', color: '#9ca3af'}}>Be the first to make your home public.</div>
               </div>
             ) : (
               homes.map(home => (
