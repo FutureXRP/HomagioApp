@@ -7,20 +7,22 @@ import { createClient } from '@/lib/supabase/client'
 
 const STEPS = ['Address', 'Details']
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-
 async function geocodeAddress(address: string, city: string, state: string, zip: string): Promise<{ lat: number; lng: number } | null> {
   try {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+    if (!token) { console.warn('Mapbox token missing'); return null }
     const query = encodeURIComponent(`${address}, ${city}, ${state} ${zip}`)
     const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${MAPBOX_TOKEN}&limit=1&country=US`
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${token}&limit=1&country=US`
     )
-    if (!res.ok) return null
+    if (!res.ok) { console.warn('Geocoding response not ok:', res.status); return null }
     const data = await res.json()
-    if (!data.features || data.features.length === 0) return null
+    if (!data.features || data.features.length === 0) { console.warn('No geocoding results'); return null }
     const [lng, lat] = data.features[0].center
+    console.log('Geocoded:', { lat, lng })
     return { lat, lng }
-  } catch {
+  } catch (err) {
+    console.warn('Geocoding failed:', err)
     return null
   }
 }
