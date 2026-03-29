@@ -9,17 +9,18 @@ const STEPS = ['Address', 'Details']
 
 async function geocodeAddress(address: string, city: string, state: string, zip: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-    if (!token) { console.warn('Mapbox token missing'); return null }
+    const token = 'pk.eyJ1IjoidGhlNWJsYWlycyIsImEiOiJjbW5hdmpheXAwbmZsMnFxMWo2bjBpcjdmIn0.Px8zSq6gn-Z3geHSYRB9LA'
     const query = encodeURIComponent(`${address}, ${city}, ${state} ${zip}`)
     const res = await fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${token}&limit=1&country=US`
     )
+    console.log('Geocoding response status:', res.status)
     if (!res.ok) { console.warn('Geocoding response not ok:', res.status); return null }
     const data = await res.json()
+    console.log('Geocoding data:', data)
     if (!data.features || data.features.length === 0) { console.warn('No geocoding results'); return null }
     const [lng, lat] = data.features[0].center
-    console.log('Geocoded:', { lat, lng })
+    console.log('Geocoded successfully:', { lat, lng })
     return { lat, lng }
   } catch (err) {
     console.warn('Geocoding failed:', err)
