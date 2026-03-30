@@ -9,16 +9,7 @@ interface NavProps {
   rightContent?: React.ReactNode
 }
 
-const PUBLIC_LINKS = [
-  { label: 'Home', href: '/' },
-  { label: 'Catalogue', href: '/dashboard' },
-  { label: 'Explore', href: '/explore' },
-  { label: 'FAQs', href: '/faq' },
-  { label: 'About Us', href: '/about' },
-  { label: 'Contact', href: '/contact' },
-]
-
-const DASHBOARD_LINKS = [
+const NAV_LINKS = [
   { label: 'Home', href: '/' },
   { label: 'Catalogue', href: '/dashboard/homes' },
   { label: 'Budget', href: '/dashboard/homes' },
@@ -44,18 +35,14 @@ export default function Nav({ variant = 'public', user, rightContent }: NavProps
         .split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
     : null
 
-  const links = variant === 'dashboard' ? DASHBOARD_LINKS : PUBLIC_LINKS
-
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
         .nav-link { padding: 7px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #444; text-decoration: none; transition: background 0.12s, color 0.12s; font-family: 'DM Sans', system-ui, sans-serif; white-space: nowrap; }
         .nav-link:hover { background: #f5f5f5; color: #3db85a; }
-        .nav-link.budget { color: #0D1B2A; font-weight: 600; }
-        .nav-link.budget:hover { background: #f0fdf4; color: #3db85a; }
-        .nav-link.pro { color: #0D1B2A; font-weight: 600; }
-        .nav-link.pro:hover { background: #f0fdf4; color: #3db85a; }
+        .nav-link.highlight { font-weight: 600; color: #0D1B2A; }
+        .nav-link.highlight:hover { background: #f0fdf4; color: #3db85a; }
         .nav-btn-outline { padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #0D1B2A; border: 1.5px solid #0D1B2A; background: transparent; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; text-decoration: none; display: inline-block; transition: border-color 0.15s, color 0.15s; }
         .nav-btn-outline:hover { border-color: #3db85a; color: #3db85a; }
         .nav-btn-solid { padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #fff; background: #0D1B2A; border: none; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; text-decoration: none; display: inline-block; transition: background 0.15s; }
@@ -64,8 +51,8 @@ export default function Nav({ variant = 'public', user, rightContent }: NavProps
         .sign-out-btn:hover { border-color: #dc2626; color: #dc2626; }
         .mobile-menu-link { padding: 12px 16px; border-radius: 8px; font-size: 15px; font-weight: 500; color: #374151; text-decoration: none; display: block; transition: background 0.12s, color 0.12s; font-family: 'DM Sans', system-ui, sans-serif; }
         .mobile-menu-link:hover { background: #f7f9fc; color: #3db85a; }
-        @media (max-width: 900px) { .nav-desktop { display: none !important; } .nav-mobile-toggle { display: flex !important; } }
-        @media (min-width: 901px) { .nav-mobile-toggle { display: none !important; } }
+        @media (max-width: 960px) { .nav-desktop { display: none !important; } .nav-mobile-toggle { display: flex !important; } }
+        @media (min-width: 961px) { .nav-mobile-toggle { display: none !important; } }
       `}</style>
 
       <nav style={{ background: '#fff', borderBottom: '1px solid #e9edf2', padding: '0 40px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 200, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
@@ -73,9 +60,9 @@ export default function Nav({ variant = 'public', user, rightContent }: NavProps
 
         {/* Desktop links */}
         <div className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-          {links.map(link => (
+          {NAV_LINKS.map(link => (
             <a key={link.label} href={link.href}
-              className={`nav-link${link.label === 'Budget' ? ' budget' : ''}${link.label === 'Pro Studio' ? ' pro' : ''}`}>
+              className={`nav-link${link.label === 'Budget' || link.label === 'Pro Studio' ? ' highlight' : ''}`}>
               {link.label}
             </a>
           ))}
@@ -117,14 +104,22 @@ export default function Nav({ variant = 'public', user, rightContent }: NavProps
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div style={{ position: 'fixed', top: '64px', left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 199 }} onClick={() => setMobileOpen(false)}>
-          <div style={{ background: '#fff', padding: '12px', display: 'flex', flexDirection: 'column', gap: '2px', borderBottom: '1px solid #e9edf2' }} onClick={e => e.stopPropagation()}>
-            {links.map(link => (
-              <a key={link.label} href={link.href} className="mobile-menu-link">{link.label}</a>
+        <div style={{ position: 'fixed', top: '64px', left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 199 }}
+          onClick={() => setMobileOpen(false)}>
+          <div style={{ background: '#fff', padding: '12px', display: 'flex', flexDirection: 'column', gap: '2px', borderBottom: '1px solid #e9edf2' }}
+            onClick={e => e.stopPropagation()}>
+            {NAV_LINKS.map(link => (
+              <a key={link.label} href={link.href} className="mobile-menu-link"
+                style={{ fontWeight: link.label === 'Budget' || link.label === 'Pro Studio' ? 600 : 500 }}>
+                {link.label}
+              </a>
             ))}
             <div style={{ height: '1px', background: '#f0f0f0', margin: '8px 0' }} />
             {user ? (
-              <button onClick={handleSignOut} className="mobile-menu-link" style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#dc2626' }}>Sign Out</button>
+              <button onClick={handleSignOut} className="mobile-menu-link"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#dc2626' }}>
+                Sign Out
+              </button>
             ) : (
               <>
                 <a href="/login" className="mobile-menu-link">Sign In</a>
