@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-
-const LOGO_URL = 'https://res.cloudinary.com/dlb0guicc/image/upload/v1774805332/6_wln7y2.png'
+import Nav from '@/components/Nav'
 
 const ROOM_TYPE_COLORS: Record<string, string> = {
   bedroom: '#1a3a5c', bathroom: '#0f2d24', kitchen: '#2d1a00',
@@ -22,19 +21,14 @@ function getRoomColor(type: string) {
 
 function MaterialRow({ material, homeId, roomId }: { material: any, homeId: string, roomId: string }) {
   const cost = material.cost > 0 ? `$${(material.cost / 100).toLocaleString()}` : null
-
   return (
-    <a
-      href={`/explore/${homeId}/rooms/${roomId}/materials/${material.id}`}
+    <a href={`/explore/${homeId}/rooms/${roomId}/materials/${material.id}`}
       style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '10px', border: '1.5px solid #e9edf2', background: '#fff', textDecoration: 'none', transition: 'border-color 0.15s, transform 0.15s', marginBottom: '8px' }}
       onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#3db85a'; (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-1px)' }}
       onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#e9edf2'; (e.currentTarget as HTMLAnchorElement).style.transform = 'none' }}
     >
       <div style={{ width: '52px', height: '52px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, background: '#0D1B2A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {material.photo_url
-          ? <img src={material.photo_url} alt={material.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <svg width="20" height="20" viewBox="0 0 20 20" fill="none" opacity="0.35"><rect x="2" y="2" width="16" height="16" rx="2.5" stroke="#fff" strokeWidth="1.5" fill="none"/><path d="M2 8h16M8 8v10" stroke="#fff" strokeWidth="1.5"/></svg>
-        }
+        {material.photo_url ? <img src={material.photo_url} alt={material.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <svg width="20" height="20" viewBox="0 0 20 20" fill="none" opacity="0.35"><rect x="2" y="2" width="16" height="16" rx="2.5" stroke="#fff" strokeWidth="1.5" fill="none"/><path d="M2 8h16M8 8v10" stroke="#fff" strokeWidth="1.5"/></svg>}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e', marginBottom: '2px' }}>{material.name}</div>
@@ -52,69 +46,47 @@ function RoomCard({ room, materials, homeId }: { room: any, materials: any[], ho
   const [expanded, setExpanded] = useState(false)
   const roomMaterials = materials.filter(m => m.room_id === room.id)
   const roomColor = getRoomColor(room.type)
-
   return (
     <div style={{ background: '#fff', border: '1.5px solid #e9edf2', borderRadius: '16px', overflow: 'hidden', marginBottom: '16px', transition: 'border-color 0.15s' }}
       onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = '#3db85a'}
       onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = '#e9edf2'}
     >
       <div onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
-        {room.photo_url ? (
-          <img src={room.photo_url} alt={room.name} style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' }} />
-        ) : (
-          <div style={{ height: '120px', background: roomColor, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(61,184,90,0.3), transparent)' }} />
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none" opacity="0.4">
-              <rect x="3" y="3" width="30" height="30" rx="3" stroke="#fff" strokeWidth="1.5" fill="none"/>
-              <path d="M3 15h30M15 15v18" stroke="#fff" strokeWidth="1.5"/>
-            </svg>
-          </div>
-        )}
+        {room.photo_url
+          ? <img src={room.photo_url} alt={room.name} style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', display: 'block' }} />
+          : <div style={{ height: '120px', background: roomColor, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(61,184,90,0.3), transparent)' }} />
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" opacity="0.4"><rect x="3" y="3" width="30" height="30" rx="3" stroke="#fff" strokeWidth="1.5" fill="none"/><path d="M3 15h30M15 15v18" stroke="#fff" strokeWidth="1.5"/></svg>
+            </div>}
         <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: '17px', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px' }}>{room.name}</div>
-            <div style={{ fontSize: '13px', color: '#9ca3af', textTransform: 'capitalize' }}>
-              {room.type} · {roomMaterials.length} material{roomMaterials.length !== 1 ? 's' : ''}
-            </div>
+            <div style={{ fontSize: '13px', color: '#9ca3af', textTransform: 'capitalize' }}>{room.type} · {roomMaterials.length} material{roomMaterials.length !== 1 ? 's' : ''}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <a
-              href={`/explore/${homeId}/rooms/${room.id}`}
-              onClick={e => e.stopPropagation()}
-              style={{ fontSize: '12px', color: '#3db85a', fontWeight: 600, textDecoration: 'none', border: '1.5px solid #3db85a', padding: '5px 12px', borderRadius: '8px', whiteSpace: 'nowrap' }}
-            >
+            <a href={`/explore/${homeId}/rooms/${room.id}`} onClick={e => e.stopPropagation()}
+              style={{ fontSize: '12px', color: '#3db85a', fontWeight: 600, textDecoration: 'none', border: '1.5px solid #3db85a', padding: '5px 12px', borderRadius: '8px', whiteSpace: 'nowrap' }}>
               View page →
             </a>
             <div style={{ fontSize: '18px', color: '#9ca3af', transition: 'transform 0.2s', transform: expanded ? 'rotate(90deg)' : 'none', lineHeight: 1 }}>›</div>
           </div>
         </div>
       </div>
-
       {expanded && (
         <div style={{ borderTop: '1px solid #e9edf2', padding: '16px 20px' }}>
-          {roomMaterials.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px', fontSize: '13px', color: '#9ca3af' }}>
-              No materials cataloged in this room yet.
-            </div>
-          ) : (
-            <>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
-                Materials — click any for full details
-              </div>
-              {roomMaterials.map(material => (
-                <MaterialRow key={material.id} material={material} homeId={homeId} roomId={room.id} />
-              ))}
-            </>
-          )}
+          {roomMaterials.length === 0
+            ? <div style={{ textAlign: 'center', padding: '24px', fontSize: '13px', color: '#9ca3af' }}>No materials cataloged in this room yet.</div>
+            : <>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Materials — click any for full details</div>
+                {roomMaterials.map(material => <MaterialRow key={material.id} material={material} homeId={homeId} roomId={room.id} />)}
+              </>}
         </div>
       )}
     </div>
   )
 }
 
-export default function PublicHomeClient({ home, rooms, materials }: {
-  home: any, rooms: any[], materials: any[]
-}) {
+export default function PublicHomeClient({ home, rooms, materials }: { home: any, rooms: any[], materials: any[] }) {
   const totalValue = materials.reduce((sum, m) => sum + (m.cost || 0), 0)
   const totalPhotos = materials.filter(m => m.photo_url).length + (home.photo_url ? 1 : 0) + rooms.filter(r => r.photo_url).length
 
@@ -130,21 +102,13 @@ export default function PublicHomeClient({ home, rooms, materials }: {
       `}</style>
 
       <div style={{ minHeight: '100vh', background: '#f7f9fc', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-
-        {/* Nav */}
-        <nav style={{ background: '#fff', borderBottom: '1px solid #e9edf2', padding: '0 40px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
-          <a href="/" style={{ textDecoration: 'none' }}>
-            <img src={LOGO_URL} alt="homagio" style={{ height: '52px', width: 'auto' }} />
-          </a>
+        <Nav rightContent={
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <a href="/explore" style={{ fontSize: '13px', color: '#6b7280', textDecoration: 'none', fontWeight: 500 }}>← Explore</a>
-            <a href="/signup" style={{ background: '#3db85a', color: '#fff', padding: '9px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>
-              Catalog My Home Free
-            </a>
+            <a href="/signup" style={{ background: '#3db85a', color: '#fff', padding: '9px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>Catalog My Home Free</a>
           </div>
-        </nav>
+        } />
 
-        {/* Hero */}
         {home.photo_url && (
           <div style={{ overflow: 'hidden', position: 'relative', background: '#0D1B2A' }}>
             <img src={home.photo_url} alt={home.name || home.address} style={{ width: '100%', maxHeight: '500px', objectFit: 'cover', display: 'block' }} />
@@ -168,7 +132,6 @@ export default function PublicHomeClient({ home, rooms, materials }: {
             </div>
           )}
 
-          {/* Tags + stats */}
           <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e9edf2', padding: '24px 28px', marginBottom: '28px' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
               {home.bedrooms && <span className="tag">{home.bedrooms} beds</span>}
@@ -194,30 +157,23 @@ export default function PublicHomeClient({ home, rooms, materials }: {
             </div>
           </div>
 
-          {/* Rooms */}
           {rooms.length > 0 && (
             <div style={{ marginBottom: '40px' }}>
               <div style={{ marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#1a1a2e', marginBottom: '4px' }}>Rooms & Materials</h2>
                 <p style={{ fontSize: '13px', color: '#9ca3af' }}>Click a room to expand materials, or visit its full page.</p>
               </div>
-              {rooms.map(room => (
-                <RoomCard key={room.id} room={room} materials={materials} homeId={home.id} />
-              ))}
+              {rooms.map(room => <RoomCard key={room.id} room={room} materials={materials} homeId={home.id} />)}
             </div>
           )}
 
-          {/* CTA */}
           <div style={{ background: '#0D1B2A', borderRadius: '20px', padding: '40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(61,184,90,0.5), transparent)' }} />
             <p style={{ fontSize: '12px', fontWeight: 700, color: '#3db85a', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '12px' }}>Inspired?</p>
             <div style={{ fontSize: '22px', fontWeight: 700, color: '#fff', marginBottom: '8px', letterSpacing: '-0.3px' }}>Catalog your own home for free.</div>
             <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.45)', marginBottom: '24px', lineHeight: 1.6 }}>Track every material, finish, and fixture — just like this home.</div>
-            <a href="/signup" style={{ background: '#3db85a', color: '#fff', padding: '13px 32px', borderRadius: '10px', fontSize: '15px', fontWeight: 700, textDecoration: 'none', display: 'inline-block' }}>
-              Get Started Free →
-            </a>
+            <a href="/signup" style={{ background: '#3db85a', color: '#fff', padding: '13px 32px', borderRadius: '10px', fontSize: '15px', fontWeight: 700, textDecoration: 'none', display: 'inline-block' }}>Get Started Free →</a>
           </div>
-
         </div>
       </div>
     </>
