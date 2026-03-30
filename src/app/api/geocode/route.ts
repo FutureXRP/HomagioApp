@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoidGhlNWJsYWlycyIsImEiOiJjbW5hdmpheXAwbmZsMnFxMWo2bjBpcjdmIn0.Px8zSq6gn-Z3geHSYRB9LA'
+// Uses unrestricted token for server-side geocoding (no URL restrictions)
+// Fallback to hardcoded public token if env var not set
+const MAPBOX_TOKEN =
+  process.env.MAPBOX_GEOCODE_TOKEN ||
+  'pk.eyJ1IjoidGhlNWJsYWlycyIsImEiOiJjbW5kbHBhdjgxZW9lMndxMmgyeDc4aDF0In0.NDbdGvsRtTZ-Xn8DiVZDxg'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
