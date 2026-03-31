@@ -88,7 +88,6 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiItems, setAiItems] = useState<AILineItem[]>([])
-  const [aiStreamText, setAiStreamText] = useState('')
   const [aiError, setAiError] = useState('')
   const [savingAI, setSavingAI] = useState(false)
 
@@ -138,80 +137,36 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
     resetForm()
   }
 
-  const handleDelete = async (id: string) => {
-    const supabase = createClient()
-    await supabase.from('budgets').delete().eq('id', id)
-    setBudgets(prev => prev.filter(b => b.id !== id))
-    setDeleteConfirm(null)
-  }
-
-  // AI budget generation
+  // AI budget generation — calls server-side API route
   const handleGenerateAI = async () => {
     if (!aiPrompt.trim()) return
     setAiLoading(true)
     setAiItems([])
-    setAiStreamText('')
     setAiError('')
 
-    const roomContext = rooms.length > 0
-      ? `The home has these rooms: ${rooms.map(r => r.name).join(', ')}.`
-      : 'No rooms have been added yet.'
-
-    const systemPrompt = `You are an expert home renovation cost estimator for the Homagio platform. 
-The user has a home located in ${home.city}, ${home.state}.
-${roomContext}
-
-Your job is to generate a detailed, realistic budget breakdown based on what the user describes.
-Use current market rates for ${home.city}, ${home.state} — adjust for local cost of living.
-Break every project into specific line items (materials, labor, permits separately when significant).
-Always include a contingency line item of 10-15% for unexpected costs.
-
-You MUST respond with ONLY a valid JSON array. No markdown, no explanation, no text before or after.
-Each item in the array must have exactly these fields:
-- project_name: string (specific and descriptive)
-- room_name: string (matching one of the home's rooms, or "General / Site Work" for exterior/whole-home items)
-- estimated_low: number (in dollars, realistic low estimate)
-- estimated_high: number (in dollars, realistic high estimate)  
-- notes: string (1 sentence explaining what's included)
-- status: "planning"
-
-Example format:
-[
-  {
-    "project_name": "Quartz Countertop Installation",
-    "room_name": "Kitchen",
-    "estimated_low": 4000,
-    "estimated_high": 8000,
-    "notes": "Includes 40 sq ft of quartz, edge profiling, sink cutout, and installation labor.",
-    "status": "planning"
-  }
-]`
-
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/ai-budget', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4000,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: aiPrompt }],
+          prompt: aiPrompt,
+          homeCityState: `${home.city}, ${home.state}`,
+          roomNames: rooms.map(r => r.name),
         }),
       })
 
-      const data = await response.json()
-      const text = data.content?.[0]?.text || ''
-      setAiStreamText(text)
+      const data = await res.json()
 
-      // Parse JSON response
-      const clean = text.replace(/```json|```/g, '').trim()
-      const parsed: any[] = JSON.parse(clean)
+      if (!res.ok) {
+        setAiError(data.error || 'Failed to generate budget. Please try again.')
+        return
+      }
 
       // Map room names to room IDs
       const roomNameToId: Record<string, string> = {}
       rooms.forEach(r => { roomNameToId[r.name.toLowerCase()] = r.id })
 
-      const items: AILineItem[] = parsed.map(item => {
+      const items: AILineItem[] = data.items.map((item: any) => {
         const roomId = roomNameToId[item.room_name?.toLowerCase()] || null
         const estimatedMid = Math.round((item.estimated_low + item.estimated_high) / 2)
         return {
@@ -228,7 +183,7 @@ Example format:
       setAiItems(items)
     } catch (err) {
       console.error('AI budget error:', err)
-      setAiError('Something went wrong generating your budget. Please try again.')
+      setAiError('Network error — please check your connection and try again.')
     } finally {
       setAiLoading(false)
     }
@@ -241,7 +196,7 @@ Example format:
       home_id: homeId,
       room_id: item.room_id,
       project_name: item.project_name,
-      estimated: item.estimated * 100, // convert to cents
+      estimated: item.estimated * 100,
       actual: 0,
       status: item.status,
     }))
@@ -284,10 +239,11 @@ Example format:
         .input-field:focus { border-color: #3db85a; }
         .stat-card { background: #fff; border: 1px solid #e9edf2; border-radius: 14px; padding: 22px 20px; display: flex; align-items: center; gap: 16px; }
         .stat-icon { width: 44px; height: 44px; border-radius: 12px; background: #0D1B2A; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .ai-item-row { background: #fff; border: 1.5px solid #e9edf2; border-radius: 12px; padding: 16px; transition: border-color 0.15s; }
-        .ai-item-row:hover { border-color: #3db85a; }
+        .ai-item-row { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 16px; transition: border-color 0.15s; }
+        .ai-item-row:hover { border-color: rgba(61,184,90,0.4); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: '#f7f9fc', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
@@ -363,7 +319,7 @@ Example format:
                     Describe what you want to do. AI will generate a detailed cost breakdown for {home.city}, {home.state}.
                   </p>
                 </div>
-                <button onClick={() => { setShowAI(false); setAiItems([]); setAiPrompt('') }}
+                <button onClick={() => { setShowAI(false); setAiItems([]); setAiPrompt(''); setAiError('') }}
                   style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   ×
                 </button>
@@ -434,7 +390,7 @@ Example format:
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', maxHeight: '420px', overflowY: 'auto' }}>
                     {aiItems.map((item, i) => (
-                      <div key={i} className="ai-item-row" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '14px 16px' }}>
+                      <div key={i} className="ai-item-row">
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <input
@@ -445,11 +401,11 @@ Example format:
                             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>{item.notes}</div>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Est:</span>
+                                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Range:</span>
                                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>${item.estimated_low.toLocaleString()} – ${item.estimated_high.toLocaleString()}</span>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Using:</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Using: $</span>
                                 <input
                                   type="number"
                                   value={item.estimated}
