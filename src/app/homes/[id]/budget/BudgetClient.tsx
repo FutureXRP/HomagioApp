@@ -610,4 +610,3 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
     </>
   )
 }
-```
