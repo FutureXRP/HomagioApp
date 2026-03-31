@@ -137,6 +137,13 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
     resetForm()
   }
 
+  const handleDelete = async (id: string) => {
+    const supabase = createClient()
+    await supabase.from('budgets').delete().eq('id', id)
+    setBudgets(prev => prev.filter(b => b.id !== id))
+    setDeleteConfirm(null)
+  }
+
   // AI budget generation — calls server-side API route
   const handleGenerateAI = async () => {
     if (!aiPrompt.trim()) return
@@ -325,7 +332,6 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
                 </button>
               </div>
 
-              {/* Prompt input */}
               {!aiItems.length && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <textarea
@@ -338,7 +344,6 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
                     onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
                   />
 
-                  {/* Example prompts */}
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {[
                       'Full kitchen remodel with new appliances',
@@ -372,7 +377,6 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
                 </div>
               )}
 
-              {/* AI Results preview */}
               {aiItems.length > 0 && (
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -606,3 +610,8 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
     </>
   )
 }
+```
+
+Commit message:
+```
+Fix handleDelete missing + AI budget server route
