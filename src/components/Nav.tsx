@@ -12,7 +12,7 @@ interface NavProps {
 const NAV_LINKS = [
   { label: 'Home', href: '/' },
   { label: 'Catalogue', href: '/dashboard/homes' },
-  { label: 'Budget', href: '/dashboard/homes' },
+  { label: 'Budget', href: '/budget' },
   { label: 'Pro Studio', href: '/pro' },
   { label: 'Explore', href: '/explore' },
   { label: 'FAQs', href: '/faq' },
