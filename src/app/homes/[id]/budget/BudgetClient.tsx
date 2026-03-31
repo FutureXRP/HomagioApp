@@ -611,7 +611,3 @@ export default function BudgetClient({ home, rooms, budgets: initialBudgets, hom
   )
 }
 ```
-
-Commit message:
-```
-Fix handleDelete missing + AI budget server route
