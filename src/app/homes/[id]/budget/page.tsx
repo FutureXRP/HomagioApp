@@ -28,6 +28,12 @@ export default async function BudgetPage({ params }: PageProps) {
     .eq('home_id', params.id)
     .order('created_at', { ascending: true })
 
+  const { data: budgetProjects } = await supabase
+    .from('budget_projects')
+    .select('*')
+    .eq('home_id', params.id)
+    .order('created_at', { ascending: true })
+
   const { data: budgets } = await supabase
     .from('budgets')
     .select('*')
@@ -38,6 +44,7 @@ export default async function BudgetPage({ params }: PageProps) {
     <BudgetClient
       home={home}
       rooms={rooms || []}
+      budgetProjects={budgetProjects || []}
       budgets={budgets || []}
       homeId={params.id}
     />
